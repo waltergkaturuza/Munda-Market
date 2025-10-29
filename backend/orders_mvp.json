@@ -1,0 +1,49 @@
+[
+  {
+    "order_number": "M-810325",
+    "order": {
+      "items": [
+        {
+          "id": "L-006",
+          "name": "Carrots",
+          "price": 0.7,
+          "qtyKg": 100.0
+        },
+        {
+          "id": "L-003",
+          "name": "Green Cabbage",
+          "price": 0.6,
+          "qtyKg": 1000.0
+        }
+      ],
+      "delivery_district": "Harare",
+      "delivery_address": "6240 WESTLEA HARARE ZIMBABWE",
+      "contact_name": "TIMOTHY KATURUZA",
+      "contact_phone": "0773596934"
+    },
+    "totals": {
+      "lines": [
+        {
+          "id": "L-006",
+          "name": "Carrots",
+          "qtyKg": 100.0,
+          "unit_price": 0.7,
+          "line_total": 70.0
+        },
+        {
+          "id": "L-003",
+          "name": "Green Cabbage",
+          "qtyKg": 1000.0,
+          "unit_price": 0.6,
+          "line_total": 600.0
+        }
+      ],
+      "total_kg": 1100.0,
+      "subtotal": 670.0,
+      "delivery_fee": 63.9,
+      "service_fee": 13.4,
+      "total": 747.3,
+      "currency": "USD"
+    }
+  }
+]
