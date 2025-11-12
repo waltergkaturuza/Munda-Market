@@ -571,6 +571,100 @@ export default function BuyersPage() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Create Buyer Dialog */}
+      <Dialog
+        open={createBuyerDialogOpen}
+        onClose={() => setCreateBuyerDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Create New Buyer</DialogTitle>
+        <DialogContent>
+          <Box display="flex" flexDirection="column" gap={2} pt={1}>
+            <TextField
+              fullWidth
+              label="Full Name"
+              value={createBuyerForm.name}
+              onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, name: e.target.value })}
+              required
+            />
+            <TextField
+              fullWidth
+              label="Phone Number"
+              value={createBuyerForm.phone}
+              onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, phone: e.target.value })}
+              required
+              placeholder="+263771234567"
+              helperText="Must start with +263 or 0"
+            />
+            <TextField
+              fullWidth
+              label="Email (Optional)"
+              type="email"
+              value={createBuyerForm.email}
+              onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, email: e.target.value })}
+            />
+            <TextField
+              fullWidth
+              label="Password"
+              type="password"
+              value={createBuyerForm.password}
+              onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, password: e.target.value })}
+              required
+              helperText="Minimum 6 characters"
+            />
+            <TextField
+              fullWidth
+              label="Company Name (Optional)"
+              value={createBuyerForm.company_name}
+              onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, company_name: e.target.value })}
+              helperText="If provided, buyer profile will be created automatically"
+            />
+            <TextField
+              fullWidth
+              label="Business Type (Optional)"
+              value={createBuyerForm.business_type}
+              onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, business_type: e.target.value })}
+              placeholder="e.g., Restaurant, Retailer, Wholesaler"
+            />
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={createBuyerForm.auto_activate}
+                  onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, auto_activate: e.target.checked })}
+                />
+              }
+              label="Auto-activate account (user can login immediately)"
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCreateBuyerDialogOpen(false)}>Cancel</Button>
+          <Button
+            onClick={() => {
+              createBuyerMutation.mutate({
+                name: createBuyerForm.name,
+                phone: createBuyerForm.phone,
+                email: createBuyerForm.email || undefined,
+                password: createBuyerForm.password,
+                company_name: createBuyerForm.company_name || undefined,
+                business_type: createBuyerForm.business_type || undefined,
+                auto_activate: createBuyerForm.auto_activate,
+              });
+            }}
+            variant="contained"
+            disabled={
+              !createBuyerForm.name ||
+              !createBuyerForm.phone ||
+              !createBuyerForm.password ||
+              createBuyerMutation.isPending
+            }
+          >
+            {createBuyerMutation.isPending ? 'Creating...' : 'Create Buyer'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
