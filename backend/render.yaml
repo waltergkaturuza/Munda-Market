@@ -9,7 +9,8 @@ services:
     region: oregon  # or singapore for Africa proximity
     plan: starter  # $7/month, upgrade to standard for production
     buildCommand: "pip install --upgrade pip && pip install -r requirements-core.txt && pip install pydantic-settings"
-    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    startCommand: "cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    rootDir: backend  # Set backend as root directory
     healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
