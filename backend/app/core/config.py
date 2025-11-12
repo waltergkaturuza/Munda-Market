@@ -1,10 +1,11 @@
-from typing import Optional, List
-import os
-from pydantic import validator
-from pydantic_settings import BaseSettings
+from typing import List, Optional
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file="config.env", case_sensitive=True)
+
     # Database
     DATABASE_URL: str = "sqlite:///./munda_market.db"
     DATABASE_TEST_URL: Optional[str] = None
@@ -43,22 +44,23 @@ class Settings(BaseSettings):
     # Application
     DEBUG: bool = True
     LOG_LEVEL: str = "info"
-    ALLOWED_HOSTS: List[str] = ["localhost", "127.0.0.1"]
+    ALLOWED_HOSTS: List[str] = Field(default_factory=lambda: ["localhost", "127.0.0.1"])
     
     # API Settings
     API_V1_STR: str = "/api/v1"
     PROJECT_NAME: str = "Munda Market"
     PROJECT_VERSION: str = "1.0.0"
     
-    @validator("ALLOWED_HOSTS", pre=True)
+    @field_validator("ALLOWED_HOSTS", mode="before")
+    @classmethod
     def parse_hosts(cls, v):
         if isinstance(v, str):
             return [host.strip() for host in v.split(",") if host.strip()]
-        return v if v else []
-    
-    class Config:
-        env_file = "config.env"
-        case_sensitive = True
+        if isinstance(v, (list, tuple)):
+            return list(v)
+        if v is None:
+            return []
+        return v
 
 
 settings = Settings()
