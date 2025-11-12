@@ -1,7 +1,8 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
+from sqlalchemy import func, and_, or_
 from pydantic import BaseModel, validator
 import json
 
@@ -11,6 +12,7 @@ from ....models.user import User, UserRole
 from ....models.farm import Farm
 from ....models.production import ProductionPlan, Lot, ProductionStatus, LotStatus, IrrigationType
 from ....models.crop import Crop
+from ....models.pricing import Listing
 
 router = APIRouter()
 
@@ -420,7 +422,7 @@ async def create_production_plan(
 
 @router.get("/production-plans", response_model=List[ProductionPlanResponse])
 async def list_production_plans(
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_farmer_or_admin),
     db: Session = Depends(get_db)
 ):
     """List production plans for current farmer"""
@@ -560,7 +562,7 @@ async def create_lot(
 
 @router.get("/lots", response_model=List[LotResponse])
 async def list_lots(
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_farmer_or_admin),
     db: Session = Depends(get_db)
 ):
     """List lots for current farmer"""
@@ -608,3 +610,128 @@ async def upload_photo(
         "lot_id": lot_id,
         "plan_id": plan_id
     }
+
+
+# ============= Farmer Dashboard Stats =============
+class FarmerDashboardStats(BaseModel):
+    total_farms: int
+    active_production_plans: int
+    total_lots: int
+    available_lots: int
+    sold_lots: int
+    total_revenue: float
+    monthly_revenue: float
+    active_listings: int
+    upcoming_harvests: int
+    hectares_under_cultivation: float
+
+
+@router.get("/dashboard/stats", response_model=FarmerDashboardStats)
+async def get_farmer_dashboard_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_farmer_or_admin)
+):
+    """Get dashboard statistics for the current farmer"""
+    
+    # Get all farms for the farmer
+    farms = db.query(Farm).filter(Farm.user_id == current_user.user_id).all()
+    farm_ids = [farm.farm_id for farm in farms]
+    
+    if not farm_ids:
+        return FarmerDashboardStats(
+            total_farms=0,
+            active_production_plans=0,
+            total_lots=0,
+            available_lots=0,
+            sold_lots=0,
+            total_revenue=0.0,
+            monthly_revenue=0.0,
+            active_listings=0,
+            upcoming_harvests=0,
+            hectares_under_cultivation=0.0
+        )
+    
+    # Farms stats
+    total_farms = len(farms)
+    
+    # Production plans stats
+    active_production_plans = db.query(ProductionPlan).filter(
+        ProductionPlan.farm_id.in_(farm_ids),
+        ProductionPlan.status.in_([
+            ProductionStatus.PLANNED,
+            ProductionStatus.PLANTED,
+            ProductionStatus.GROWING,
+            ProductionStatus.FLOWERING,
+            ProductionStatus.FRUIT_SET,
+            ProductionStatus.HARVEST_READY,
+            ProductionStatus.HARVESTING
+        ])
+    ).count()
+    
+    # Lots stats
+    plan_ids = db.query(ProductionPlan.plan_id).filter(
+        ProductionPlan.farm_id.in_(farm_ids)
+    ).subquery()
+    
+    total_lots = db.query(Lot).filter(Lot.plan_id.in_(plan_ids)).count()
+    available_lots = db.query(Lot).filter(
+        Lot.plan_id.in_(plan_ids),
+        Lot.current_status == LotStatus.AVAILABLE
+    ).count()
+    sold_lots = db.query(Lot).filter(
+        Lot.plan_id.in_(plan_ids),
+        Lot.current_status == LotStatus.SOLD
+    ).count()
+    
+    # Revenue stats (from sold lots via listings)
+    # Note: This is a simplified calculation. In production, you'd join through orders/payments
+    total_revenue = 0.0  # TODO: Calculate from actual sales/orders
+    monthly_revenue = 0.0  # TODO: Calculate from actual sales/orders
+    
+    # Active listings (lots that are listed for sale)
+    active_listings = db.query(Listing).join(Lot).filter(
+        Lot.plan_id.in_(plan_ids),
+        Listing.is_active == True
+    ).count()
+    
+    # Upcoming harvests (production plans with harvest dates in next 30 days)
+    thirty_days_from_now = datetime.utcnow() + timedelta(days=30)
+    upcoming_harvests = db.query(ProductionPlan).filter(
+        ProductionPlan.farm_id.in_(farm_ids),
+        ProductionPlan.expected_harvest_window_start <= thirty_days_from_now,
+        ProductionPlan.expected_harvest_window_start >= datetime.utcnow(),
+        ProductionPlan.status.in_([
+            ProductionStatus.GROWING,
+            ProductionStatus.FLOWERING,
+            ProductionStatus.FRUIT_SET,
+            ProductionStatus.HARVEST_READY
+        ])
+    ).count()
+    
+    # Hectares under cultivation
+    hectares_result = db.query(func.sum(ProductionPlan.hectares)).filter(
+        ProductionPlan.farm_id.in_(farm_ids),
+        ProductionPlan.status.in_([
+            ProductionStatus.PLANNED,
+            ProductionStatus.PLANTED,
+            ProductionStatus.GROWING,
+            ProductionStatus.FLOWERING,
+            ProductionStatus.FRUIT_SET,
+            ProductionStatus.HARVEST_READY,
+            ProductionStatus.HARVESTING
+        ])
+    ).scalar()
+    hectares_under_cultivation = float(hectares_result) if hectares_result else 0.0
+    
+    return FarmerDashboardStats(
+        total_farms=total_farms,
+        active_production_plans=active_production_plans,
+        total_lots=total_lots,
+        available_lots=available_lots,
+        sold_lots=sold_lots,
+        total_revenue=total_revenue,
+        monthly_revenue=monthly_revenue,
+        active_listings=active_listings,
+        upcoming_harvests=upcoming_harvests,
+        hectares_under_cultivation=hectares_under_cultivation
+    )
