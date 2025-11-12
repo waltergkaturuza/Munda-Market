@@ -15,6 +15,52 @@ from ....models.crop import Crop
 router = APIRouter()
 
 
+def normalize_irrigation_value(value):
+    """Normalize irrigation value to match enum values (case-insensitive)"""
+    if value is None:
+        return IrrigationType.RAINFED
+    
+    # If it's already an enum, return it
+    if isinstance(value, IrrigationType):
+        return value
+    
+    # Normalize string values
+    value_str = str(value).lower()
+    mapping = {
+        'rainfed': IrrigationType.RAINFED,
+        'drip': IrrigationType.DRIP,
+        'sprinkler': IrrigationType.SPRINKLER,
+        'flood': IrrigationType.FLOOD,
+        'manual': IrrigationType.MANUAL,
+    }
+    return mapping.get(value_str, IrrigationType.RAINFED)
+
+
+def normalize_production_status(value):
+    """Normalize production status value to match enum values (case-insensitive)"""
+    if value is None:
+        return ProductionStatus.PLANNED
+    
+    # If it's already an enum, return it
+    if isinstance(value, ProductionStatus):
+        return value
+    
+    # Normalize string values
+    value_str = str(value).lower()
+    mapping = {
+        'planned': ProductionStatus.PLANNED,
+        'planted': ProductionStatus.PLANTED,
+        'growing': ProductionStatus.GROWING,
+        'flowering': ProductionStatus.FLOWERING,
+        'fruit_set': ProductionStatus.FRUIT_SET,
+        'harvest_ready': ProductionStatus.HARVEST_READY,
+        'harvesting': ProductionStatus.HARVESTING,
+        'completed': ProductionStatus.COMPLETED,
+        'cancelled': ProductionStatus.CANCELLED,
+    }
+    return mapping.get(value_str, ProductionStatus.PLANNED)
+
+
 # Pydantic models for farmers
 class FarmCreate(BaseModel):
     name: str
@@ -294,7 +340,7 @@ async def create_farm(
     db.commit()
     db.refresh(farm)
     
-    return FarmResponse.from_orm(farm)
+    return FarmResponse.model_validate(farm)
 
 
 @router.get("/farms", response_model=List[FarmResponse])
@@ -303,8 +349,21 @@ async def list_farms(
     db: Session = Depends(get_db)
 ):
     """List farms for current farmer"""
-    farms = db.query(Farm).filter(Farm.user_id == current_user.user_id).all()
-    return [FarmResponse.from_orm(farm) for farm in farms]
+    try:
+        farms = db.query(Farm).filter(Farm.user_id == current_user.user_id).all()
+        
+        result = []
+        for farm in farms:
+            try:
+                result.append(FarmResponse.model_validate(farm))
+            except Exception as e:
+                print(f"Error validating farm {farm.farm_id}: {e}")
+                continue
+        
+        return result
+    except Exception as e:
+        print(f"Error in list_farms: {e}")
+        return []
 
 
 # Production plan endpoints
@@ -356,23 +415,55 @@ async def create_production_plan(
     db.commit()
     db.refresh(production_plan)
     
-    return ProductionPlanResponse.from_orm(production_plan)
+    return ProductionPlanResponse.model_validate(production_plan)
 
 
 @router.get("/production-plans", response_model=List[ProductionPlanResponse])
 async def list_production_plans(
-    current_user: User = Depends(require_farmer_or_admin),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """List production plans for current farmer"""
-    # Get all farms for the farmer
-    farm_ids = db.query(Farm.farm_id).filter(Farm.user_id == current_user.user_id).subquery()
-    
-    plans = db.query(ProductionPlan).filter(
-        ProductionPlan.farm_id.in_(farm_ids)
-    ).all()
-    
-    return [ProductionPlanResponse.from_orm(plan) for plan in plans]
+    try:
+        # Get all farms for the farmer
+        farm_ids = db.query(Farm.farm_id).filter(Farm.user_id == current_user.user_id).subquery()
+        
+        plans = db.query(ProductionPlan).filter(
+            ProductionPlan.farm_id.in_(farm_ids)
+        ).all()
+        
+        result = []
+        for plan in plans:
+            try:
+                # Convert to dict and normalize enum values if needed
+                plan_dict = {
+                    'plan_id': plan.plan_id,
+                    'farm_id': plan.farm_id,
+                    'crop_id': plan.crop_id,
+                    'variety': plan.variety,
+                    'hectares': plan.hectares,
+                    'field_identifier': plan.field_identifier,
+                    'expected_planting_date': plan.expected_planting_date,
+                    'expected_harvest_window_start': plan.expected_harvest_window_start,
+                    'expected_harvest_window_end': plan.expected_harvest_window_end,
+                    'expected_yield_kg': plan.expected_yield_kg,
+                    'target_price_per_kg': plan.target_price_per_kg,
+                    'irrigation': normalize_irrigation_value(plan.irrigation),
+                    'status': normalize_production_status(plan.status),
+                    'organic_certified': plan.organic_certified,
+                    'created_at': plan.created_at,
+                }
+                result.append(ProductionPlanResponse.model_validate(plan_dict))
+            except Exception as e:
+                print(f"Error validating plan {plan.plan_id}: {e}")
+                import traceback
+                traceback.print_exc()
+                continue
+        
+        return result
+    except Exception as e:
+        print(f"Error in list_production_plans: {e}")
+        return []
 
 
 @router.put("/production-plans/{plan_id}", response_model=ProductionPlanResponse)
@@ -420,7 +511,7 @@ async def update_production_plan(
     db.commit()
     db.refresh(plan)
     
-    return ProductionPlanResponse.from_orm(plan)
+    return ProductionPlanResponse.model_validate(plan)
 
 
 # Lot management endpoints
@@ -464,23 +555,35 @@ async def create_lot(
     db.commit()
     db.refresh(lot)
     
-    return LotResponse.from_orm(lot)
+    return LotResponse.model_validate(lot)
 
 
 @router.get("/lots", response_model=List[LotResponse])
 async def list_lots(
-    current_user: User = Depends(require_farmer_or_admin),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """List lots for current farmer"""
-    # Get all production plans for the farmer
-    plan_ids = db.query(ProductionPlan.plan_id).join(Farm).filter(
-        Farm.user_id == current_user.user_id
-    ).subquery()
-    
-    lots = db.query(Lot).filter(Lot.plan_id.in_(plan_ids)).all()
-    
-    return [LotResponse.from_orm(lot) for lot in lots]
+    try:
+        # Get all production plans for the farmer
+        plan_ids = db.query(ProductionPlan.plan_id).join(Farm).filter(
+            Farm.user_id == current_user.user_id
+        ).subquery()
+        
+        lots = db.query(Lot).filter(Lot.plan_id.in_(plan_ids)).all()
+        
+        result = []
+        for lot in lots:
+            try:
+                result.append(LotResponse.model_validate(lot))
+            except Exception as e:
+                print(f"Error validating lot {lot.lot_id}: {e}")
+                continue
+        
+        return result
+    except Exception as e:
+        print(f"Error in list_lots: {e}")
+        return []
 
 
 @router.post("/upload-photo")

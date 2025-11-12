@@ -15,7 +15,8 @@ from .endpoints import (
     qc,
     admin,
     admin_users,
-    settings
+    settings,
+    banners
 )
 
 # Create main API router
@@ -39,3 +40,4 @@ api_router.include_router(settings.router, prefix="/admin", tags=["Settings"])
 api_router.include_router(admin_users.router, tags=["Admin Users"])
 # Admin routes (some at root level like /dashboard/stats, others at /admin)
 api_router.include_router(admin.router, tags=["Administration"])
+api_router.include_router(banners.router, prefix="/banners", tags=["Banners"])

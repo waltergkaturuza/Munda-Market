@@ -10,6 +10,7 @@ from .payment import Payment, Payout
 from .logistics import Shipment
 from .quality import QCCheck
 from .audit import AuditLog, SecurityEvent
+from .banner import Banner, BannerType, BannerPlatform
 
 __all__ = [
     "User",
@@ -28,5 +29,8 @@ __all__ = [
     "Shipment",
     "QCCheck",
     "AuditLog",
-    "SecurityEvent"
+    "SecurityEvent",
+    "Banner",
+    "BannerType",
+    "BannerPlatform"
 ]

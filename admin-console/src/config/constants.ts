@@ -25,6 +25,7 @@ export const ROUTES = {
   SETTINGS: '/settings',
   PROFILE: '/profile',
   KYC: '/kyc',
+  BANNERS: '/banners',
 } as const;
 
 export const USER_ROLES = {

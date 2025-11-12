@@ -110,3 +110,58 @@ export interface DashboardStats {
   pending_kyc_count: number;
 }
 
+export type BannerType = 'info' | 'success' | 'warning' | 'error' | 'promotion';
+export type BannerPlatform = 'admin' | 'buyer' | 'farmer' | 'all';
+
+export interface Banner {
+  banner_id: number;
+  title: string;
+  message: string;
+  banner_type: BannerType;
+  platform: BannerPlatform;
+  image_url?: string;
+  link_url?: string;
+  link_text?: string;
+  start_date?: string;
+  end_date?: string;
+  is_active: boolean;
+  is_dismissible: boolean;
+  priority: number;
+  targeting_rules?: Record<string, any>;
+  created_by?: number;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface BannerCreate {
+  title: string;
+  message: string;
+  banner_type: BannerType;
+  platform: BannerPlatform;
+  image_url?: string;
+  link_url?: string;
+  link_text?: string;
+  start_date?: string;
+  end_date?: string;
+  is_active?: boolean;
+  is_dismissible?: boolean;
+  priority?: number;
+  targeting_rules?: Record<string, any>;
+}
+
+export interface BannerUpdate {
+  title?: string;
+  message?: string;
+  banner_type?: BannerType;
+  platform?: BannerPlatform;
+  image_url?: string;
+  link_url?: string;
+  link_text?: string;
+  start_date?: string;
+  end_date?: string;
+  is_active?: boolean;
+  is_dismissible?: boolean;
+  priority?: number;
+  targeting_rules?: Record<string, any>;
+}
+

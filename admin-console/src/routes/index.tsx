@@ -15,6 +15,7 @@ import PayoutsPage from '@/pages/PayoutsPage';
 import MessagingPage from '@/pages/MessagingPage';
 import AuditLogsPage from '@/pages/AuditLogsPage';
 import SettingsPage from '@/pages/SettingsPage';
+import BannersPage from '@/pages/BannersPage';
 
 export function AppRoutes() {
   return (
@@ -42,6 +43,7 @@ export function AppRoutes() {
         <Route path={ROUTES.MESSAGING} element={<MessagingPage />} />
         <Route path={ROUTES.AUDIT_LOGS} element={<AuditLogsPage />} />
         <Route path={ROUTES.SETTINGS} element={<SettingsPage />} />
+        <Route path={ROUTES.BANNERS} element={<BannersPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to={ROUTES.LOGIN} replace />} />

@@ -25,6 +25,9 @@ import {
   CheckCircle,
 } from '@mui/icons-material';
 import { useAuth } from '../services/auth';
+import { useQuery } from 'react-query';
+import { bannersApi } from '../services/banners';
+import Banner from '../components/Banner';
 
 // Mock data - in real app this would come from API
 const dashboardData = {
@@ -146,6 +149,12 @@ function getStatusIcon(status) {
 function Dashboard() {
   const { user } = useAuth();
 
+  const { data: banners = [] } = useQuery({
+    queryKey: ['dashboard-banners', 'buyer'],
+    queryFn: bannersApi.getActiveBanners,
+    refetchInterval: 60000, // Refresh every minute
+  });
+
   return (
     <Box>
       <Typography variant="h4" gutterBottom>
@@ -154,6 +163,11 @@ function Dashboard() {
       <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
         Welcome back, {user?.name}! Here's what's happening with your orders.
       </Typography>
+
+      {/* Banners */}
+      {banners.map((banner) => (
+        <Banner key={banner.banner_id} banner={banner} />
+      ))}
 
       {/* Stats Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>

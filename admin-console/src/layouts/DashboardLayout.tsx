@@ -34,6 +34,7 @@ import {
   Logout,
   VerifiedUser,
   PriceChange,
+  Campaign,
 } from '@mui/icons-material';
 import { useAuthStore } from '@/store/auth';
 import { useThemeStore } from '@/store/theme';
@@ -53,6 +54,7 @@ const menuItems = [
   { text: 'Payouts', icon: <Payment />, path: ROUTES.PAYOUTS },
   { text: 'Messaging', icon: <Message />, path: ROUTES.MESSAGING },
   { text: 'Audit Logs', icon: <Assessment />, path: ROUTES.AUDIT_LOGS },
+  { text: 'Banners', icon: <Campaign />, path: ROUTES.BANNERS },
   { text: 'Settings', icon: <Settings />, path: ROUTES.SETTINGS },
 ];
 

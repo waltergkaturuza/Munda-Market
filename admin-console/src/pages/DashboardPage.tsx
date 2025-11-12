@@ -8,6 +8,8 @@ import {
 } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
 import { dashboardApi } from '@/api/dashboard';
+import { bannersApi } from '@/api/banners';
+import Banner from '@/components/Banner';
 
 interface StatCardProps {
   title: string;
@@ -60,6 +62,12 @@ export default function DashboardPage() {
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
+  const { data: banners = [] } = useQuery({
+    queryKey: ['dashboard-banners', 'admin'],
+    queryFn: () => bannersApi.getActiveBanners('admin'),
+    refetchInterval: 60000, // Refresh every minute
+  });
+
   if (isLoading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
@@ -76,6 +84,11 @@ export default function DashboardPage() {
       <Typography variant="body1" color="text.secondary" mb={3}>
         Overview of marketplace operations
       </Typography>
+
+      {/* Banners */}
+      {banners.map((banner) => (
+        <Banner key={banner.banner_id} banner={banner} />
+      ))}
 
       <Grid container spacing={3}>
         {/* Stats Cards */}
