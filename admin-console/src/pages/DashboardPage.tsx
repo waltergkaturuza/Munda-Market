@@ -154,6 +154,30 @@ export default function DashboardPage() {
           />
         </Grid>
 
+        {stats?.buyers_with_stock !== undefined && (
+          <>
+            <Grid item xs={12} sm={6} md={4}>
+              <StatCard
+                title="Buyers with Stock"
+                value={stats.buyers_with_stock}
+                subtitle={`$${(stats.total_buyer_stock_value || 0).toLocaleString()} total value`}
+                icon={<Inventory sx={{ color: 'white' }} />}
+                color="info.main"
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={4}>
+              <StatCard
+                title="Low Stock Items"
+                value={stats.items_low_stock || 0}
+                subtitle={`${stats.items_expiring_soon || 0} expiring soon`}
+                icon={<Warning sx={{ color: 'white' }} />}
+                color="warning.main"
+              />
+            </Grid>
+          </>
+        )}
+
         {/* Charts Section */}
         <Grid item xs={12} md={6}>
           <Paper sx={{ p: 3, height: 300 }}>
