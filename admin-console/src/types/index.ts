@@ -108,6 +108,10 @@ export interface DashboardStats {
   revenue_this_month_usd: number;
   pending_payouts_usd: number;
   pending_kyc_count: number;
+  buyers_with_stock?: number;
+  total_buyer_stock_value?: number;
+  items_low_stock?: number;
+  items_expiring_soon?: number;
 }
 
 export type BannerType = 'info' | 'success' | 'warning' | 'error' | 'promotion';

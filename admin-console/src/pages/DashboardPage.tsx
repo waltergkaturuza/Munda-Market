@@ -5,6 +5,8 @@ import {
   AttachMoney,
   TrendingUp,
   VerifiedUser,
+  Inventory,
+  Warning,
 } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
 import { dashboardApi } from '@/api/dashboard';
