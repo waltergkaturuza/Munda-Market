@@ -421,7 +421,6 @@ export default function BannersPage() {
             </Button>
           </DialogActions>
         </Dialog>
-      </Box>
     </Box>
   );
 }
