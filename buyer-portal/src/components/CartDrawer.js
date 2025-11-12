@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Drawer,
   Box,
@@ -15,7 +16,13 @@ import { Close, Delete } from '@mui/icons-material';
 import { useCart } from '../services/cart';
 
 function CartDrawer({ open, onClose }) {
+  const navigate = useNavigate();
   const { items, updateQty, removeItem, totals, clear } = useCart();
+
+  const handleCheckout = () => {
+    onClose();
+    navigate('/checkout');
+  };
 
   return (
     <Drawer anchor="right" open={open} onClose={onClose} sx={{ '& .MuiDrawer-paper': { width: 360 } }}>
@@ -53,7 +60,9 @@ function CartDrawer({ open, onClose }) {
         <Typography variant="subtitle1" sx={{ mb: 1 }}>Subtotal: ${totals.subtotal.toFixed(2)}</Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Button variant="outlined" onClick={clear} disabled={!items.length}>Clear</Button>
-          <Button variant="contained" fullWidth disabled={!items.length}>Checkout</Button>
+          <Button variant="contained" fullWidth disabled={!items.length} onClick={handleCheckout}>
+            Checkout
+          </Button>
         </Box>
       </Box>
     </Drawer>

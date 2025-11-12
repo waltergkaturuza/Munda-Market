@@ -11,6 +11,7 @@ import Orders from './pages/Orders';
 import Profile from './pages/Profile';
 import Invoices from './pages/Invoices';
 import Analytics from './pages/Analytics';
+import Checkout from './pages/Checkout';
 import { AuthProvider, useAuth } from './services/auth';
 import { CartProvider } from './services/cart';
 
@@ -62,6 +63,7 @@ function AppContent() {
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/crops" element={<CropDiscovery />} />
+            <Route path="/checkout" element={<Checkout />} />
             <Route path="/orders" element={<Orders />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/invoices" element={<Invoices />} />
