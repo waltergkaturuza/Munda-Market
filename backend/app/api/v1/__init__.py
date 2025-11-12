@@ -13,7 +13,9 @@ from .endpoints import (
     payments,
     shipments,
     qc,
-    admin
+    admin,
+    admin_users,
+    settings
 )
 
 # Create main API router
@@ -33,4 +35,7 @@ api_router.include_router(analytics.router, prefix="/analytics", tags=["Analytic
 api_router.include_router(payments.router, prefix="/payments", tags=["Payments"])
 api_router.include_router(shipments.router, prefix="/shipments", tags=["Shipments"])
 api_router.include_router(qc.router, prefix="/qc", tags=["Quality Control"])
-api_router.include_router(admin.router, prefix="/admin", tags=["Administration"])
+api_router.include_router(settings.router, prefix="/admin", tags=["Settings"])
+api_router.include_router(admin_users.router, tags=["Admin Users"])
+# Admin routes (some at root level like /dashboard/stats, others at /admin)
+api_router.include_router(admin.router, tags=["Administration"])

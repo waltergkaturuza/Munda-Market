@@ -1,0 +1,27 @@
+{
+  "app": {
+    "name": "Munda Market",
+    "tagline": "Admin Console"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "kyc": "KYC Queue",
+    "farmers": "Farmers",
+    "buyers": "Buyers",
+    "orders": "Orders",
+    "inventory": "Inventory",
+    "pricing": "Pricing",
+    "payments": "Payments",
+    "payouts": "Payouts",
+    "messaging": "Messaging",
+    "audit": "Audit Logs",
+    "settings": "Settings"
+  },
+  "auth": {
+    "login": "Sign In",
+    "logout": "Logout",
+    "username": "Phone or Email",
+    "password": "Password"
+  }
+}
+

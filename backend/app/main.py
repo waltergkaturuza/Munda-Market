@@ -25,13 +25,21 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json" if settings.DEBUG else None,
 )
 
-# CORS middleware
+# CORS middleware - Allow admin console and buyer portal
+allowed_origins = [
+    "http://localhost:3000",  # Buyer Portal
+    "http://localhost:3001",  # Admin Console
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"] if settings.DEBUG else settings.ALLOWED_HOSTS,
+    allow_origins=["*"] if settings.DEBUG else allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Trusted hosts middleware (security)

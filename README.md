@@ -86,6 +86,24 @@ Copy `.env.example` to `.env` and configure:
 - Payment gateway keys
 - JWT secret
 
+## Deployment
+
+See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for detailed production deployment instructions.
+
+### Production Architecture:
+- **Backend**: Render.com (FastAPI + PostgreSQL)
+- **Admin Console**: Vercel (React/Vite)
+- **Buyer Portal**: Vercel (React)
+- **Farmer App**: Google Play Store (Flutter)
+
+### Quick Deploy:
+```bash
+# Backend → Render.com (auto-deploy from GitHub)
+# Admin Console → vercel --prod (from admin-console/)
+# Buyer Portal → vercel --prod (from buyer-portal/)
+# Flutter App → flutter build appbundle --release
+```
+
 ## License
 
 Proprietary - All rights reserved
