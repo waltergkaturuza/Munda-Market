@@ -3,8 +3,24 @@ import axios from 'axios';
 
 // Get API base URL from environment variable, fallback to localhost for development
 // Support both REACT_APP_API_URL (from vercel.json) and REACT_APP_API_BASE_URL
-const API_BASE = process.env.REACT_APP_API_BASE_URL || process.env.REACT_APP_API_URL || 'http://localhost:8000';
+// Fallback to Render URL if custom domain not configured
+const API_BASE = process.env.REACT_APP_API_BASE_URL || 
+                 process.env.REACT_APP_API_URL || 
+                 (window.location.hostname.includes('vercel.app') || window.location.hostname.includes('mundamarket.co.zw') 
+                   ? 'https://munda-market.onrender.com' 
+                   : 'http://localhost:8000');
 const API_BASE_URL = API_BASE.endsWith('/api/v1') ? API_BASE : `${API_BASE}/api/v1`;
+
+// Debug logging (only in development or if explicitly enabled)
+if (process.env.NODE_ENV === 'development' || window.location.search.includes('debug=api')) {
+  console.log('API Configuration:', {
+    REACT_APP_API_BASE_URL: process.env.REACT_APP_API_BASE_URL,
+    REACT_APP_API_URL: process.env.REACT_APP_API_URL,
+    hostname: window.location.hostname,
+    API_BASE,
+    API_BASE_URL
+  });
+}
 
 // Create axios instance with base URL
 export const api = axios.create({
