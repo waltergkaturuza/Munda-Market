@@ -53,8 +53,8 @@ class Settings(BaseSettings):
     @validator("ALLOWED_HOSTS", pre=True)
     def parse_hosts(cls, v):
         if isinstance(v, str):
-            return [host.strip() for host in v.split(",")]
-        return v
+            return [host.strip() for host in v.split(",") if host.strip()]
+        return v if v else []
     
     class Config:
         env_file = "config.env"
