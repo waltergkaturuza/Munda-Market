@@ -31,6 +31,10 @@ allowed_origins = [
     "http://localhost:3001",  # Admin Console
     "http://127.0.0.1:3000",
     "http://127.0.0.1:3001",
+    "https://munda-market-admin.vercel.app",
+    "https://munda-market-buyer.vercel.app",
+    "https://admin.mundamarket.co.zw",
+    "https://buy.mundamarket.co.zw",
 ]
 
 app.add_middleware(
