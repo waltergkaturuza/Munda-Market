@@ -20,7 +20,7 @@
     }
   ],
   "env": {
-    "REACT_APP_API_URL": "https://api.mundamarket.co.zw"
+    "REACT_APP_API_BASE_URL": "https://munda-market.onrender.com"
   }
 }
 

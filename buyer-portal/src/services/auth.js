@@ -1,9 +1,14 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 
+// Get API base URL from environment variable, fallback to localhost for development
+// Support both REACT_APP_API_URL (from vercel.json) and REACT_APP_API_BASE_URL
+const API_BASE = process.env.REACT_APP_API_BASE_URL || process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const API_BASE_URL = API_BASE.endsWith('/api/v1') ? API_BASE : `${API_BASE}/api/v1`;
+
 // Create axios instance with base URL
 export const api = axios.create({
-  baseURL: 'http://localhost:8000/api/v1',
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
