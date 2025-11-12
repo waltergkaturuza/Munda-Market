@@ -20,7 +20,7 @@ import {
   Tabs,
   Tab,
 } from '@mui/material';
-import { CheckCircle, Cancel } from '@mui/icons-material';
+import { CheckCircle } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { payoutsApi } from '@/api/payouts';
 import { Payout } from '@/types';

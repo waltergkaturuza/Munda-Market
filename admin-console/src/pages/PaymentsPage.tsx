@@ -26,7 +26,7 @@ import {
   Menu,
   IconButton,
 } from '@mui/material';
-import { CheckCircle, Undo, Visibility, MoreVert, Download } from '@mui/icons-material';
+import { CheckCircle, Undo, Visibility, MoreVert } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { paymentsApi, Payment } from '@/api/payments';
 
@@ -221,7 +221,7 @@ export default function PaymentsPage() {
                   <TableCell>#{payment.payment_id}</TableCell>
                   <TableCell>#{payment.order_id}</TableCell>
                   <TableCell>{payment.buyer_name || `Buyer #${payment.buyer_user_id}`}</TableCell>
-                  <TableCell align="right" fontWeight="bold">
+                  <TableCell align="right" sx={{ fontWeight: 'bold' }}>
                     ${payment.amount_usd.toFixed(2)}
                   </TableCell>
                   <TableCell>{payment.currency}</TableCell>
