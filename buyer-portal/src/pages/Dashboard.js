@@ -28,67 +28,10 @@ import { useAuth } from '../services/auth';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { bannersApi } from '../services/banners';
 import { inventoryApi } from '../services/inventory';
+import { buyersApi } from '../services/buyers';
+import { api } from '../services/auth';
 import Banner from '../components/Banner';
 import InventoryAlerts from '../components/InventoryAlerts';
-
-// Mock data - in real app this would come from API
-const dashboardData = {
-  stats: {
-    totalOrders: 24,
-    activeOrders: 3,
-    monthlySpent: 2450.00,
-    availableCrops: 15,
-  },
-  recentOrders: [
-    {
-      id: 'ORD-001',
-      crop: 'Tomatoes',
-      quantity: '50kg',
-      status: 'delivered',
-      date: '2024-10-25',
-      amount: 60.00,
-    },
-    {
-      id: 'ORD-002',
-      crop: 'Onions',
-      quantity: '25kg',
-      status: 'in_transit',
-      date: '2024-10-27',
-      amount: 20.00,
-    },
-    {
-      id: 'ORD-003',
-      crop: 'Cabbage',
-      quantity: '30kg',
-      status: 'processing',
-      date: '2024-10-28',
-      amount: 18.00,
-    },
-  ],
-  availableCrops: [
-    {
-      name: 'Fresh Tomatoes',
-      grade: 'A',
-      price: 1.20,
-      available: '500kg',
-      harvest: '2024-11-02',
-    },
-    {
-      name: 'Red Onions',
-      grade: 'B',
-      price: 0.80,
-      available: '200kg',
-      harvest: '2024-11-05',
-    },
-    {
-      name: 'Green Cabbage',
-      grade: 'A',
-      price: 0.60,
-      available: '300kg',
-      harvest: '2024-11-01',
-    },
-  ],
-};
 
 function StatCard({ title, value, icon, color = 'primary' }) {
   return (
@@ -152,6 +95,30 @@ function Dashboard() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
+  // Fetch dashboard stats (buyer-specific)
+  const { data: stats, isLoading: statsLoading } = useQuery({
+    queryKey: ['buyer-dashboard-stats'],
+    queryFn: buyersApi.getDashboardStats,
+    refetchInterval: 60000, // Refresh every minute
+  });
+
+  // Fetch recent orders (buyer-specific)
+  const { data: recentOrders = [], isLoading: ordersLoading } = useQuery({
+    queryKey: ['buyer-recent-orders'],
+    queryFn: () => buyersApi.getRecentOrders(5),
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
+  // Fetch available crops (public - same for all buyers)
+  const { data: availableCrops = [], isLoading: cropsLoading } = useQuery({
+    queryKey: ['available-crops'],
+    queryFn: async () => {
+      const response = await api.get('/crops/', { params: { limit: 3 } });
+      return response.data;
+    },
+    refetchInterval: 300000, // Refresh every 5 minutes
+  });
+
   const { data: banners = [] } = useQuery({
     queryKey: ['dashboard-banners', 'buyer'],
     queryFn: bannersApi.getActiveBanners,
@@ -208,39 +175,43 @@ function Dashboard() {
       />
 
       {/* Stats Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Total Orders"
-            value={dashboardData.stats.totalOrders}
-            icon={<ShoppingCart sx={{ color: 'primary.main' }} />}
-          />
+      {statsLoading ? (
+        <LinearProgress sx={{ mb: 3 }} />
+      ) : (
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          <Grid item xs={12} sm={6} md={3}>
+            <StatCard
+              title="Total Orders"
+              value={stats?.total_orders || 0}
+              icon={<ShoppingCart sx={{ color: 'primary.main' }} />}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <StatCard
+              title="Active Orders"
+              value={stats?.active_orders || 0}
+              icon={<LocalShipping sx={{ color: 'warning.main' }} />}
+              color="warning"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <StatCard
+              title="Monthly Spent"
+              value={`$${(stats?.monthly_spent || 0).toFixed(2)}`}
+              icon={<TrendingUp sx={{ color: 'success.main' }} />}
+              color="success"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <StatCard
+              title="Available Crops"
+              value={stats?.available_crops_count || 0}
+              icon={<Agriculture sx={{ color: 'info.main' }} />}
+              color="info"
+            />
+          </Grid>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Active Orders"
-            value={dashboardData.stats.activeOrders}
-            icon={<LocalShipping sx={{ color: 'warning.main' }} />}
-            color="warning"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Monthly Spent"
-            value={`$${dashboardData.stats.monthlySpent.toFixed(2)}`}
-            icon={<TrendingUp sx={{ color: 'success.main' }} />}
-            color="success"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Available Crops"
-            value={dashboardData.stats.availableCrops}
-            icon={<Agriculture sx={{ color: 'info.main' }} />}
-            color="info"
-          />
-        </Grid>
-      </Grid>
+      )}
 
       {/* Recent Orders and Available Crops */}
       <Grid container spacing={3}>
@@ -266,22 +237,38 @@ function Dashboard() {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {dashboardData.recentOrders.map((order) => (
-                      <TableRow key={order.id}>
-                        <TableCell>{order.id}</TableCell>
-                        <TableCell>{order.crop}</TableCell>
-                        <TableCell>{order.quantity}</TableCell>
-                        <TableCell>
-                          <Chip
-                            size="small"
-                            icon={getStatusIcon(order.status)}
-                            label={order.status.replace('_', ' ')}
-                            color={getStatusColor(order.status)}
-                          />
+                    {ordersLoading ? (
+                      <TableRow>
+                        <TableCell colSpan={5} align="center">
+                          <LinearProgress />
                         </TableCell>
-                        <TableCell align="right">${order.amount.toFixed(2)}</TableCell>
                       </TableRow>
-                    ))}
+                    ) : recentOrders.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} align="center">
+                          <Typography variant="body2" color="text.secondary">
+                            No recent orders
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      recentOrders.map((order) => (
+                        <TableRow key={order.order_id}>
+                          <TableCell>{order.order_number}</TableCell>
+                          <TableCell>{order.crop_names.join(', ') || 'N/A'}</TableCell>
+                          <TableCell>-</TableCell>
+                          <TableCell>
+                            <Chip
+                              size="small"
+                              icon={getStatusIcon(order.status)}
+                              label={order.status.replace('_', ' ')}
+                              color={getStatusColor(order.status)}
+                            />
+                          </TableCell>
+                          <TableCell align="right">${order.total.toFixed(2)}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </TableContainer>
@@ -299,20 +286,27 @@ function Dashboard() {
                 </Button>
               </Box>
               
-              {dashboardData.availableCrops.map((crop, index) => (
-                <Box key={index} sx={{ mb: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-                  <Box display="flex" justifyContent="space-between" alignItems="center">
-                    <Typography variant="subtitle2">{crop.name}</Typography>
-                    <Chip size="small" label={`Grade ${crop.grade}`} />
+              {cropsLoading ? (
+                <LinearProgress />
+              ) : availableCrops.length === 0 ? (
+                <Typography variant="body2" color="text.secondary">
+                  No crops available
+                </Typography>
+              ) : (
+                availableCrops.map((crop) => (
+                  <Box key={crop.crop_id} sx={{ mb: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                    <Box display="flex" justifyContent="space-between" alignItems="center">
+                      <Typography variant="subtitle2">{crop.name}</Typography>
+                      {crop.category && (
+                        <Chip size="small" label={crop.category} />
+                      )}
+                    </Box>
+                    <Typography variant="body2" color="text.secondary">
+                      {crop.description || 'Fresh produce available'}
+                    </Typography>
                   </Box>
-                  <Typography variant="body2" color="text.secondary">
-                    ${crop.price}/kg • {crop.available} available
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Harvest: {new Date(crop.harvest).toLocaleDateString()}
-                  </Typography>
-                </Box>
-              ))}
+                ))
+              )}
             </CardContent>
           </Card>
         </Grid>

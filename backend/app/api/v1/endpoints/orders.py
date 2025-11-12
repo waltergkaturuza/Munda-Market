@@ -11,6 +11,7 @@ from ....core.auth import get_current_active_user
 from ....models.user import User
 from ....models.order import Order, OrderStatus
 from ....models.crop import Crop
+from ....models.buyer import Buyer
 
 router = APIRouter()
 
@@ -130,8 +131,14 @@ async def list_orders(
     query = db.query(Order)
     
     # If not admin/ops, only show user's own orders
+    # Join through Buyer table to get user_id
     if current_user.role.value not in ['ADMIN', 'OPS']:
-        query = query.filter(Order.buyer_user_id == current_user.user_id)
+        buyer = db.query(Buyer).filter(Buyer.user_id == current_user.user_id).first()
+        if buyer:
+            query = query.filter(Order.buyer_id == buyer.buyer_id)
+        else:
+            # Buyer profile doesn't exist, return empty list
+            return []
     
     if status:
         query = query.filter(Order.status == status)
@@ -140,20 +147,36 @@ async def list_orders(
     result = []
     
     for order in orders:
-        buyer = db.query(User).filter(User.user_id == order.buyer_user_id).first()
-        crop = db.query(Crop).filter(Crop.crop_id == order.crop_id).first()
+        # Get buyer info through Buyer table
+        buyer_record = db.query(Buyer).filter(Buyer.buyer_id == order.buyer_id).first()
+        buyer_user = None
+        if buyer_record:
+            buyer_user = db.query(User).filter(User.user_id == buyer_record.user_id).first()
+        
+        # Get crop names from order items
+        from ....models.order import OrderItem
+        order_items = db.query(OrderItem).filter(OrderItem.order_id == order.order_id).all()
+        crop_names = []
+        for item in order_items:
+            crop = db.query(Crop).filter(Crop.crop_id == item.crop_id).first()
+            if crop:
+                crop_names.append(crop.name)
+        
+        # Use first crop for backward compatibility (or create a summary)
+        crop_name = crop_names[0] if crop_names else None
+        crop_id = order_items[0].crop_id if order_items else None
         
         result.append(OrderResponse(
             order_id=order.order_id,
-            buyer_user_id=order.buyer_user_id,
-            buyer_name=buyer.name if buyer else None,
-            crop_id=order.crop_id,
-            crop_name=crop.name if crop else None,
-            quantity_kg=float(order.quantity_kg),
-            unit_price_usd=float(order.unit_price_usd),
-            total_amount_usd=float(order.total_price_usd),
+            buyer_user_id=buyer_record.user_id if buyer_record else None,
+            buyer_name=buyer_user.name if buyer_user else None,
+            crop_id=crop_id,
+            crop_name=crop_name,
+            quantity_kg=float(sum(item.qty_kg for item in order_items)) if order_items else 0.0,
+            unit_price_usd=float(order_items[0].unit_price_usd) if order_items else 0.0,
+            total_amount_usd=float(order.total),
             status=order.status.value,
-            delivery_date=order.delivery_date,
+            delivery_date=order.actual_delivery_date,
             created_at=order.created_at
         ))
     
