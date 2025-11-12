@@ -65,19 +65,21 @@ async def get_dashboard_stats(
     today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
     orders_delivered_today = db.query(Order).filter(
         Order.status == OrderStatus.DELIVERED,
-        Order.delivered_at >= today_start
+        Order.actual_delivery_date != None,
+        Order.actual_delivery_date >= today_start
     ).count()
     
     # Revenue stats
-    total_revenue = db.query(func.sum(Order.total_price_usd)).filter(
+    total_revenue = db.query(func.sum(Order.total)).filter(
         Order.status == OrderStatus.DELIVERED
     ).scalar() or 0.0
     
     # Revenue this month
     month_start = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    revenue_this_month = db.query(func.sum(Order.total_price_usd)).filter(
+    revenue_this_month = db.query(func.sum(Order.total)).filter(
         Order.status == OrderStatus.DELIVERED,
-        Order.delivered_at >= month_start
+        Order.actual_delivery_date != None,
+        Order.actual_delivery_date >= month_start
     ).scalar() or 0.0
     
     # Pending payouts
