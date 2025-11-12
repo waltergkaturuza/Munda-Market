@@ -24,7 +24,7 @@ import {
   CircularProgress,
   IconButton,
 } from '@mui/material';
-import { Add, Delete, Edit } from '@mui/icons-material';
+import { Add, Delete } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { pricingApi, CreatePricingRuleRequest } from '@/api/pricing';
 
