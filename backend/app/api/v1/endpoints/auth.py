@@ -229,11 +229,24 @@ async def change_password(
     db: Session = Depends(get_db)
 ):
     """Change user password"""
+    import logging
+    logger = logging.getLogger(__name__)
+    
     # Verify old password
-    if not verify_password(password_data.old_password, current_user.hashed_password):
+    try:
+        if not verify_password(password_data.old_password, current_user.hashed_password):
+            logger.warning(f"Password change failed: Incorrect current password for user {current_user.user_id}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Incorrect current password"
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Password verification error during password change: {e}")
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Incorrect current password"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error verifying password"
         )
     
     # Validate new password
@@ -243,8 +256,18 @@ async def change_password(
             detail="New password must be at least 6 characters long"
         )
     
-    # Update password
-    current_user.hashed_password = get_password_hash(password_data.new_password)
-    db.commit()
+    # Update password with new hash
+    try:
+        current_user.hashed_password = get_password_hash(password_data.new_password)
+        db.commit()
+        db.refresh(current_user)
+        logger.info(f"Password changed successfully for user {current_user.user_id}")
+    except Exception as e:
+        logger.error(f"Error updating password: {e}")
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error updating password"
+        )
     
     return {"message": "Password changed successfully"}

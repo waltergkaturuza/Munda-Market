@@ -57,20 +57,33 @@ def verify_token(token: str) -> Optional[dict]:
 
 def authenticate_user(db: Session, username: str, password: str) -> Optional[User]:
     """Authenticate user with username/email and password"""
+    import logging
+    logger = logging.getLogger(__name__)
+    
     # Try to find user by phone or email
     user = db.query(User).filter(
         (User.phone == username) | (User.email == username)
     ).first()
     
     if not user:
+        logger.warning(f"Authentication failed: User not found for username: {username}")
         return None
     
-    if not verify_password(password, user.hashed_password):
+    # Verify password
+    try:
+        password_valid = verify_password(password, user.hashed_password)
+        if not password_valid:
+            logger.warning(f"Authentication failed: Invalid password for user {user.user_id} ({user.phone})")
+            return None
+    except Exception as e:
+        logger.error(f"Password verification error for user {user.user_id}: {e}")
         return None
     
     if user.status != UserStatus.ACTIVE:
+        logger.warning(f"Authentication failed: User {user.user_id} is not ACTIVE (status: {user.status})")
         return None
     
+    logger.info(f"Authentication successful for user {user.user_id} ({user.phone})")
     return user
 
 
