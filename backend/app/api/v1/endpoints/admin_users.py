@@ -10,9 +10,10 @@ from ....core.auth import require_staff
 from ....models.user import User, UserRole, UserStatus
 from ....models.farm import Farm
 from ....models.production import ProductionPlan
-from ....models.order import Order
+from ....models.order import Order, OrderStatus
 from ....models.payment import Payment, Payout
 from ....models.audit import AuditLog, AuditAction, AuditEntity
+from ....models.buyer import Buyer, BuyerTier, BuyerStatus, PaymentTerms
 
 router = APIRouter()
 
@@ -56,17 +57,20 @@ async def get_all_farmers(
     current_user: User = Depends(require_staff)
 ):
     """Get all farmers with stats"""
+    from ....models.farm import Farm
+    from ....models.production import ProductionPlan
+    
     farmers = db.query(User).filter(User.role == UserRole.FARMER).all()
     result = []
     
     for farmer in farmers:
         # Count farms
-        farms_count = db.query(Farm).filter(Farm.owner_user_id == farmer.user_id).count()
+        farms_count = db.query(Farm).filter(Farm.user_id == farmer.user_id).count()
         
         # Sum production
         total_production = db.query(func.sum(ProductionPlan.expected_yield_kg)).filter(
             ProductionPlan.farm_id.in_(
-                db.query(Farm.farm_id).filter(Farm.owner_user_id == farmer.user_id)
+                db.query(Farm.farm_id).filter(Farm.user_id == farmer.user_id)
             )
         ).scalar() or 0.0
         
@@ -108,14 +112,14 @@ async def get_farmer_details(
         raise HTTPException(status_code=404, detail="Farmer not found")
     
     # Get farms
-    farms = db.query(Farm).filter(Farm.owner_user_id == farmer_id).all()
+    farms = db.query(Farm).filter(Farm.user_id == farmer_id).all()
     farms_data = [
         {
             "farm_id": f.farm_id,
-            "farm_name": f.farm_name,
-            "location": f.location,
-            "total_area_hectares": float(f.total_area_hectares),
-            "status": f.status.value if hasattr(f.status, 'value') else str(f.status)
+            "farm_name": f.name,
+            "location": f"{f.district}, {f.province}",
+            "total_area_hectares": float(f.total_hectares) if f.total_hectares else 0.0,
+            "status": f.verification_status or "pending"
         }
         for f in farms
     ]
@@ -157,6 +161,38 @@ async def get_farmer_details(
         production_plans=[],
         payouts=payouts_data
     )
+
+
+@router.get("/admin/farmers/{farmer_id}/farms", response_model=List[dict])
+async def get_farmer_farms(
+    farmer_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_staff)
+):
+    """Get all farms for a farmer"""
+    farmer = db.query(User).filter(
+        User.user_id == farmer_id,
+        User.role == UserRole.FARMER
+    ).first()
+    
+    if not farmer:
+        raise HTTPException(status_code=404, detail="Farmer not found")
+    
+    farms = db.query(Farm).filter(Farm.user_id == farmer_id).all()
+    
+    return [
+        {
+            "farm_id": f.farm_id,
+            "farm_name": f.name,
+            "location": f"{f.district}, {f.province}",
+            "total_area_hectares": float(f.total_hectares) if f.total_hectares else 0.0,
+            "farm_type": f.farm_type,
+            "irrigation_available": f.irrigation_available,
+            "verification_status": f.verification_status or "pending",
+            "created_at": f.created_at.isoformat() if f.created_at else None,
+        }
+        for f in farms
+    ]
 
 
 @router.post("/admin/farmers/{farmer_id}/suspend")
@@ -240,31 +276,41 @@ async def get_all_buyers(
     current_user: User = Depends(require_staff)
 ):
     """Get all buyers with stats"""
-    buyers = db.query(User).filter(User.role == UserRole.BUYER).all()
+    from ....models.buyer import Buyer
+    
+    # Get all buyer users
+    buyer_users = db.query(User).filter(User.role == UserRole.BUYER).all()
     result = []
     
-    for buyer in buyers:
-        # Count orders
-        total_orders = db.query(Order).filter(Order.buyer_user_id == buyer.user_id).count()
+    for buyer_user in buyer_users:
+        # Get buyer profile if it exists
+        buyer_profile = db.query(Buyer).filter(Buyer.user_id == buyer_user.user_id).first()
         
-        # Sum spending
-        total_spent = db.query(func.sum(Payment.amount_usd)).filter(
-            Payment.buyer_user_id == buyer.user_id,
-            Payment.status == "COMPLETED"
-        ).scalar() or 0.0
+        # Count orders (join through Buyer table)
+        total_orders = 0
+        total_spent = 0.0
+        
+        if buyer_profile:
+            total_orders = db.query(Order).filter(Order.buyer_id == buyer_profile.buyer_id).count()
+            # Sum spending from orders
+            total_spent_result = db.query(func.sum(Order.total)).filter(
+                Order.buyer_id == buyer_profile.buyer_id,
+                Order.status == OrderStatus.DELIVERED
+            ).scalar()
+            total_spent = float(total_spent_result) if total_spent_result else 0.0
         
         result.append(BuyerResponse(
-            user_id=buyer.user_id,
-            name=buyer.name,
-            phone=buyer.phone,
-            email=buyer.email,
-            status=buyer.status.value,
-            is_verified=buyer.is_verified or False,
-            created_at=buyer.created_at,
-            last_login=buyer.last_login,
+            user_id=buyer_user.user_id,
+            name=buyer_user.name,
+            phone=buyer_user.phone,
+            email=buyer_user.email,
+            status=buyer_user.status.value,
+            is_verified=buyer_user.is_verified or False,
+            created_at=buyer_user.created_at,
+            last_login=buyer_user.last_login,
             total_orders=total_orders,
-            total_spent_usd=float(total_spent),
-            company_name=None  # TODO: Extract from profile_data
+            total_spent_usd=total_spent,
+            company_name=buyer_profile.company_name if buyer_profile else None
         ))
     
     return result
@@ -299,6 +345,115 @@ async def suspend_buyer(
     return {"message": "Buyer suspended successfully"}
 
 
+@router.get("/admin/buyers/{buyer_id}", response_model=dict)
+async def get_buyer_details(
+    buyer_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_staff)
+):
+    """Get detailed buyer information"""
+    buyer_user = db.query(User).filter(
+        User.user_id == buyer_id,
+        User.role == UserRole.BUYER
+    ).first()
+    
+    if not buyer_user:
+        raise HTTPException(status_code=404, detail="Buyer not found")
+    
+    # Get buyer profile
+    buyer_profile = db.query(Buyer).filter(Buyer.user_id == buyer_id).first()
+    
+    # Get orders
+    orders = []
+    if buyer_profile:
+        orders_query = db.query(Order).filter(Order.buyer_id == buyer_profile.buyer_id).limit(10).all()
+        orders = [
+            {
+                "order_id": o.order_id,
+                "order_number": o.order_number,
+                "total": float(o.total),
+                "status": o.status.value,
+                "created_at": o.created_at.isoformat()
+            }
+            for o in orders_query
+        ]
+    
+    return {
+        "user_id": buyer_user.user_id,
+        "name": buyer_user.name,
+        "phone": buyer_user.phone,
+        "email": buyer_user.email,
+        "status": buyer_user.status.value,
+        "is_verified": buyer_user.is_verified or False,
+        "created_at": buyer_user.created_at.isoformat(),
+        "last_login": buyer_user.last_login.isoformat() if buyer_user.last_login else None,
+        "buyer_profile": {
+            "buyer_id": buyer_profile.buyer_id,
+            "company_name": buyer_profile.company_name,
+            "business_type": buyer_profile.business_type,
+            "buyer_tier": buyer_profile.buyer_tier.value if buyer_profile.buyer_tier else None,
+            "status": buyer_profile.status.value if buyer_profile.status else None,
+            "payment_terms": buyer_profile.payment_terms.value if buyer_profile.payment_terms else None,
+        } if buyer_profile else None,
+        "orders": orders,
+        "total_orders": len(orders),
+        "total_spent": sum(o["total"] for o in orders)
+    }
+
+
+@router.post("/admin/buyers/{buyer_id}/create-profile")
+async def create_buyer_profile_admin(
+    buyer_id: int,
+    profile_data: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_staff)
+):
+    """Create buyer profile (admin only)"""
+    buyer_user = db.query(User).filter(
+        User.user_id == buyer_id,
+        User.role == UserRole.BUYER
+    ).first()
+    
+    if not buyer_user:
+        raise HTTPException(status_code=404, detail="Buyer user not found")
+    
+    # Check if profile already exists
+    existing = db.query(Buyer).filter(Buyer.user_id == buyer_id).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Buyer profile already exists")
+    
+    # Create buyer profile
+    buyer = Buyer(
+        user_id=buyer_id,
+        company_name=profile_data.get("company_name", buyer_user.name),
+        business_type=profile_data.get("business_type"),
+        business_phone=profile_data.get("business_phone", buyer_user.phone),
+        business_email=profile_data.get("business_email", buyer_user.email),
+        tax_number=profile_data.get("tax_number"),
+        vat_number=profile_data.get("vat_number"),
+        business_registration_number=profile_data.get("business_registration_number"),
+        payment_terms=PaymentTerms.PREPAID,
+        status=BuyerStatus.ACTIVE,
+        buyer_tier=BuyerTier.BASIC
+    )
+    
+    db.add(buyer)
+    
+    # Log action
+    audit = AuditLog(
+        user_id=current_user.user_id,
+        user_name=current_user.name,
+        action=AuditAction.CREATE,
+        entity=AuditEntity.USER,
+        entity_id=buyer_id,
+        description=f"Buyer profile created for {buyer_user.name}"
+    )
+    db.add(audit)
+    db.commit()
+    
+    return {"message": "Buyer profile created successfully", "buyer_id": buyer.buyer_id}
+
+
 @router.post("/admin/buyers/{buyer_id}/activate")
 async def activate_buyer(
     buyer_id: int,
@@ -311,6 +466,11 @@ async def activate_buyer(
         raise HTTPException(status_code=404, detail="Buyer not found")
     
     buyer.status = UserStatus.ACTIVE
+    
+    # Also activate buyer profile if it exists
+    buyer_profile = db.query(Buyer).filter(Buyer.user_id == buyer_id).first()
+    if buyer_profile:
+        buyer_profile.status = BuyerStatus.ACTIVE
     
     # Log action
     audit = AuditLog(

@@ -27,9 +27,9 @@ import {
   CardContent,
   Divider,
 } from '@mui/material';
-import { MoreVert, Visibility, Block, CheckCircle, Phone, Email, Business } from '@mui/icons-material';
+import { MoreVert, Visibility, Block, CheckCircle, Phone, Email, Business, Add } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { buyersApi, Buyer } from '@/api/buyers';
+import { buyersApi, Buyer, CreateBuyerProfileRequest } from '@/api/buyers';
 
 const statusColors: Record<string, 'default' | 'success' | 'warning' | 'error'> = {
   PENDING: 'warning',
@@ -76,6 +76,17 @@ export default function BuyersPage() {
     },
   });
 
+  const createProfileMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: CreateBuyerProfileRequest }) =>
+      buyersApi.createProfile(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['buyers'] });
+      queryClient.invalidateQueries({ queryKey: ['buyer-details', selectedBuyer?.user_id] });
+      setCreateProfileDialogOpen(false);
+      setProfileData({ company_name: '', business_type: '', business_phone: '', business_email: '' });
+    },
+  });
+
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, buyerId: number) => {
     setAnchorEl({ ...anchorEl, [buyerId]: event.currentTarget });
   };
@@ -89,10 +100,20 @@ export default function BuyersPage() {
     setDetailsDialogOpen(true);
   };
 
-  const handleOpenAction = (buyer: Buyer, action: 'suspend' | 'activate') => {
+  const handleOpenAction = (buyer: Buyer, action: 'suspend' | 'activate' | 'create-profile') => {
     setSelectedBuyer(buyer);
     setActionType(action);
-    setActionDialogOpen(true);
+    if (action === 'create-profile') {
+      setProfileData({
+        company_name: buyer.name,
+        business_phone: buyer.phone,
+        business_email: buyer.email || '',
+        business_type: '',
+      });
+      setCreateProfileDialogOpen(true);
+    } else {
+      setActionDialogOpen(true);
+    }
   };
 
   const handleConfirmAction = () => {
@@ -276,6 +297,17 @@ export default function BuyersPage() {
                           Activate
                         </MenuItem>
                       )}
+                      {!buyer.company_name && (
+                        <MenuItem
+                          onClick={() => {
+                            handleOpenAction(buyer, 'create-profile');
+                            handleMenuClose(buyer.user_id);
+                          }}
+                        >
+                          <Add fontSize="small" sx={{ mr: 1 }} />
+                          Create Profile
+                        </MenuItem>
+                      )}
                     </Menu>
                   </TableCell>
                 </TableRow>
@@ -429,6 +461,77 @@ export default function BuyersPage() {
               : actionType === 'suspend'
                 ? 'Suspend'
                 : 'Activate'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Create Profile Dialog */}
+      <Dialog
+        open={createProfileDialogOpen}
+        onClose={() => setCreateProfileDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Create Buyer Profile</DialogTitle>
+        <DialogContent>
+          {selectedBuyer && (
+            <Box sx={{ pt: 2 }}>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Creating profile for: <strong>{selectedBuyer.name}</strong>
+              </Typography>
+              <TextField
+                fullWidth
+                label="Company Name"
+                value={profileData.company_name}
+                onChange={(e) => setProfileData({ ...profileData, company_name: e.target.value })}
+                required
+                margin="normal"
+              />
+              <TextField
+                fullWidth
+                label="Business Type"
+                value={profileData.business_type}
+                onChange={(e) => setProfileData({ ...profileData, business_type: e.target.value })}
+                margin="normal"
+                placeholder="e.g., Restaurant, Retailer, Wholesaler"
+              />
+              <TextField
+                fullWidth
+                label="Business Phone"
+                value={profileData.business_phone}
+                onChange={(e) => setProfileData({ ...profileData, business_phone: e.target.value })}
+                margin="normal"
+              />
+              <TextField
+                fullWidth
+                label="Business Email"
+                type="email"
+                value={profileData.business_email}
+                onChange={(e) => setProfileData({ ...profileData, business_email: e.target.value })}
+                margin="normal"
+              />
+              <TextField
+                fullWidth
+                label="Tax Number (Optional)"
+                value={profileData.tax_number || ''}
+                onChange={(e) => setProfileData({ ...profileData, tax_number: e.target.value })}
+                margin="normal"
+              />
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCreateProfileDialogOpen(false)}>Cancel</Button>
+          <Button
+            onClick={() => {
+              if (selectedBuyer) {
+                createProfileMutation.mutate({ id: selectedBuyer.user_id, data: profileData });
+              }
+            }}
+            variant="contained"
+            disabled={!profileData.company_name || createProfileMutation.isPending}
+          >
+            {createProfileMutation.isPending ? 'Creating...' : 'Create Profile'}
           </Button>
         </DialogActions>
       </Dialog>

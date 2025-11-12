@@ -25,6 +25,16 @@ export interface UpdateBuyerRequest {
   is_verified?: boolean;
 }
 
+export interface CreateBuyerProfileRequest {
+  company_name: string;
+  business_type?: string;
+  business_phone?: string;
+  business_email?: string;
+  tax_number?: string;
+  vat_number?: string;
+  business_registration_number?: string;
+}
+
 export const buyersApi = {
   getAll: async (): Promise<Buyer[]> => {
     const response = await apiClient.get<Buyer[]>('/admin/buyers');
@@ -38,6 +48,10 @@ export const buyersApi = {
 
   update: async (id: number, data: UpdateBuyerRequest): Promise<void> => {
     await apiClient.patch(`/admin/buyers/${id}`, data);
+  },
+
+  createProfile: async (id: number, data: CreateBuyerProfileRequest): Promise<void> => {
+    await apiClient.post(`/admin/buyers/${id}/create-profile`, data);
   },
 
   suspend: async (id: number, reason: string): Promise<void> => {

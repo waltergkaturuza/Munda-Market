@@ -3,12 +3,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, or_
 from datetime import datetime, timedelta
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 from ....core.database import get_db
 from ....core.auth import get_current_active_user, require_buyer
 from ....models.user import User, UserRole
-from ....models.buyer import Buyer
+from ....models.buyer import Buyer, BuyerTier, BuyerStatus, PaymentTerms
 from ....models.order import Order, OrderStatus
 from ....models.crop import Crop
 from ....models.pricing import Listing
@@ -17,6 +17,25 @@ router = APIRouter()
 
 
 # ============= Pydantic Models =============
+class BuyerProfileCreate(BaseModel):
+    company_name: str
+    business_type: Optional[str] = None
+    business_phone: Optional[str] = None
+    business_email: Optional[EmailStr] = None
+    tax_number: Optional[str] = None
+    vat_number: Optional[str] = None
+    business_registration_number: Optional[str] = None
+    billing_address_line1: Optional[str] = None
+    billing_city: Optional[str] = None
+    billing_district: Optional[str] = None
+    billing_province: Optional[str] = None
+    default_delivery_address_line1: Optional[str] = None
+    default_delivery_city: Optional[str] = None
+    default_delivery_district: Optional[str] = None
+    default_delivery_province: Optional[str] = None
+    payment_terms: Optional[str] = "prepaid"
+
+
 class BuyerDashboardStats(BaseModel):
     total_orders: int
     active_orders: int
@@ -38,6 +57,60 @@ class BuyerOrderSummary(BaseModel):
     crop_names: List[str]
 
 
+# ============= Buyer Profile Creation =============
+@router.post("/profile", response_model=dict)
+async def create_buyer_profile(
+    profile_data: BuyerProfileCreate,
+    current_user: User = Depends(require_buyer),
+    db: Session = Depends(get_db)
+):
+    """Create or update buyer profile"""
+    
+    # Check if buyer profile already exists
+    existing_buyer = db.query(Buyer).filter(Buyer.user_id == current_user.user_id).first()
+    
+    if existing_buyer:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Buyer profile already exists. Use PUT /buyers/profile to update."
+        )
+    
+    # Create buyer profile
+    buyer = Buyer(
+        user_id=current_user.user_id,
+        company_name=profile_data.company_name,
+        business_type=profile_data.business_type,
+        business_phone=profile_data.business_phone or current_user.phone,
+        business_email=profile_data.business_email or current_user.email,
+        tax_number=profile_data.tax_number,
+        vat_number=profile_data.vat_number,
+        business_registration_number=profile_data.business_registration_number,
+        billing_address_line1=profile_data.billing_address_line1,
+        billing_city=profile_data.billing_city,
+        billing_district=profile_data.billing_district,
+        billing_province=profile_data.billing_province,
+        default_delivery_address_line1=profile_data.default_delivery_address_line1,
+        default_delivery_city=profile_data.default_delivery_city,
+        default_delivery_district=profile_data.default_delivery_district,
+        default_delivery_province=profile_data.default_delivery_province,
+        payment_terms=PaymentTerms.PREPAID if profile_data.payment_terms == "prepaid" else PaymentTerms.COD,
+        status=BuyerStatus.PENDING,
+        buyer_tier=BuyerTier.BASIC
+    )
+    
+    db.add(buyer)
+    db.commit()
+    db.refresh(buyer)
+    
+    return {
+        "buyer_id": buyer.buyer_id,
+        "user_id": buyer.user_id,
+        "company_name": buyer.company_name,
+        "status": buyer.status.value,
+        "message": "Buyer profile created successfully"
+    }
+
+
 # ============= Buyer Dashboard Endpoints =============
 @router.get("/dashboard/stats", response_model=BuyerDashboardStats)
 async def get_buyer_dashboard_stats(
@@ -51,7 +124,7 @@ async def get_buyer_dashboard_stats(
     if not buyer:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Buyer profile not found"
+            detail="Buyer profile not found. Please create your buyer profile first."
         )
     
     # Orders stats
