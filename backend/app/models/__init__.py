@@ -13,6 +13,7 @@ from .audit import AuditLog, SecurityEvent
 from .banner import Banner, BannerType, BannerPlatform
 from .buyer_inventory import BuyerInventoryPreference, InventoryAlert, AlertSeverity, AlertStatus
 from .stock_history import StockHistory
+from .buyer_stock import BuyerStock, StockMovement, StockMovementType, SalesIntensityCode
 
 __all__ = [
     "User",
@@ -39,5 +40,9 @@ __all__ = [
     "InventoryAlert",
     "AlertSeverity",
     "AlertStatus",
-    "StockHistory"
+    "StockHistory",
+    "BuyerStock",
+    "StockMovement",
+    "StockMovementType",
+    "SalesIntensityCode"
 ]

@@ -17,7 +17,8 @@ from .endpoints import (
     admin_users,
     settings,
     banners,
-    inventory_alerts
+    inventory_alerts,
+    buyer_inventory
 )
 
 # Create main API router
@@ -43,3 +44,4 @@ api_router.include_router(admin_users.router, tags=["Admin Users"])
 api_router.include_router(admin.router, tags=["Administration"])
 api_router.include_router(banners.router, prefix="/banners", tags=["Banners"])
 api_router.include_router(inventory_alerts.router, prefix="/inventory", tags=["Inventory Alerts"])
+api_router.include_router(buyer_inventory.router, prefix="/buyer-inventory", tags=["Buyer Inventory Management"])

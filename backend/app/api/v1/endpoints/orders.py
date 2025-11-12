@@ -201,7 +201,20 @@ async def update_order_status(
         raise HTTPException(status_code=404, detail="Order not found")
     
     try:
+        old_status = order.status
         order.status = OrderStatus(status)
+        
+        # Sync stock when order is delivered
+        if OrderStatus(status) == OrderStatus.DELIVERED and old_status != OrderStatus.DELIVERED:
+            from ....services.stock_sync import sync_stock_from_order
+            try:
+                sync_stock_from_order(db, order)
+            except Exception as e:
+                # Log error but don't fail the status update
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Error syncing stock for order {order.order_id}: {e}")
+        
         db.commit()
         return {"message": "Order status updated successfully"}
     except ValueError:
