@@ -32,10 +32,12 @@ allowed_origins = [
     "http://localhost:3001",  # Admin Console
     "http://127.0.0.1:3000",
     "http://127.0.0.1:3001",
-    "https://munda-market-admin.vercel.app",
-    "https://munda-market-buyer.vercel.app",
-    "https://admin.mundamarket.co.zw",
-    "https://buy.mundamarket.co.zw",
+    "https://munda-market-admin.vercel.app",  # Admin Console (Vercel)
+    "https://munda-market-buyer.vercel.app",  # Buyer Portal (Vercel)
+    "https://admin.mundamarket.co.zw",  # Admin Console (Custom Domain)
+    "https://buy.mundamarket.co.zw",  # Buyer Portal (Custom Domain)
+    "https://munda-market.onrender.com",  # Backend (Render) - for direct API access
+    "https://api.mundamarket.co.zw",  # Backend (Custom Domain) - when DNS is configured
 ]
 
 app.add_middleware(
