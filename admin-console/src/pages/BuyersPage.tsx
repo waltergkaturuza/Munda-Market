@@ -26,6 +26,8 @@ import {
   Card,
   CardContent,
   Divider,
+  FormControlLabel,
+  Switch,
 } from '@mui/material';
 import { MoreVert, Visibility, Block, CheckCircle, Phone, Email, Business, Add } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -47,6 +49,23 @@ export default function BuyersPage() {
   const [actionType, setActionType] = useState<'suspend' | 'activate'>('suspend');
   const [actionReason, setActionReason] = useState('');
   const [anchorEl, setAnchorEl] = useState<{ [key: number]: HTMLElement | null }>({});
+  const [createBuyerDialogOpen, setCreateBuyerDialogOpen] = useState(false);
+  const [createBuyerForm, setCreateBuyerForm] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    password: '',
+    company_name: '',
+    business_type: '',
+    auto_activate: true,
+  });
+  const [createProfileDialogOpen, setCreateProfileDialogOpen] = useState(false);
+  const [profileData, setProfileData] = useState<CreateBuyerProfileRequest>({
+    company_name: '',
+    business_type: '',
+    business_phone: '',
+    business_email: '',
+  });
 
   const { data: buyers, isLoading } = useQuery({
     queryKey: ['buyers'],
@@ -84,6 +103,23 @@ export default function BuyersPage() {
       queryClient.invalidateQueries({ queryKey: ['buyer-details', selectedBuyer?.user_id] });
       setCreateProfileDialogOpen(false);
       setProfileData({ company_name: '', business_type: '', business_phone: '', business_email: '' });
+    },
+  });
+
+  const createBuyerMutation = useMutation({
+    mutationFn: buyersApi.create,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['buyers'] });
+      setCreateBuyerDialogOpen(false);
+      setCreateBuyerForm({
+        name: '',
+        phone: '',
+        email: '',
+        password: '',
+        company_name: '',
+        business_type: '',
+        auto_activate: true,
+      });
     },
   });
 

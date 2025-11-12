@@ -26,8 +26,10 @@ import {
   Card,
   CardContent,
   Divider,
+  FormControlLabel,
+  Switch,
 } from '@mui/material';
-import { MoreVert, Visibility, Block, CheckCircle, Phone, Email } from '@mui/icons-material';
+import { MoreVert, Visibility, Block, CheckCircle, Phone, Email, Add } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { farmersApi, Farmer } from '@/api/farmers';
 
@@ -47,6 +49,14 @@ export default function FarmersPage() {
   const [actionType, setActionType] = useState<'suspend' | 'activate'>('suspend');
   const [actionReason, setActionReason] = useState('');
   const [anchorEl, setAnchorEl] = useState<{ [key: number]: HTMLElement | null }>({});
+  const [createFarmerDialogOpen, setCreateFarmerDialogOpen] = useState(false);
+  const [createFarmerForm, setCreateFarmerForm] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    password: '',
+    auto_activate: true,
+  });
 
   const { data: farmers, isLoading } = useQuery({
     queryKey: ['farmers'],
@@ -74,6 +84,21 @@ export default function FarmersPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['farmers'] });
       setActionDialogOpen(false);
+    },
+  });
+
+  const createFarmerMutation = useMutation({
+    mutationFn: farmersApi.create,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['farmers'] });
+      setCreateFarmerDialogOpen(false);
+      setCreateFarmerForm({
+        name: '',
+        phone: '',
+        email: '',
+        password: '',
+        auto_activate: true,
+      });
     },
   });
 
@@ -123,12 +148,23 @@ export default function FarmersPage() {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom fontWeight="bold">
-        Farmers Management
-      </Typography>
-      <Typography variant="body1" color="text.secondary" mb={3}>
-        Manage farmer accounts, production plans, and earnings
-      </Typography>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Box>
+          <Typography variant="h4" gutterBottom fontWeight="bold">
+            Farmers Management
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Manage farmer accounts, production plans, and earnings
+          </Typography>
+        </Box>
+        <Button
+          variant="contained"
+          startIcon={<Add />}
+          onClick={() => setCreateFarmerDialogOpen(true)}
+        >
+          Create Farmer
+        </Button>
+      </Box>
 
       {/* Summary Cards */}
       <Grid container spacing={3} mb={3}>

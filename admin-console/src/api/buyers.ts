@@ -35,10 +35,24 @@ export interface CreateBuyerProfileRequest {
   business_registration_number?: string;
 }
 
+export interface CreateBuyerRequest {
+  name: string;
+  phone: string;
+  email?: string;
+  password: string;
+  company_name?: string;
+  business_type?: string;
+  auto_activate?: boolean;
+}
+
 export const buyersApi = {
   getAll: async (): Promise<Buyer[]> => {
     const response = await apiClient.get<Buyer[]>('/admin/buyers');
     return response.data;
+  },
+
+  create: async (data: CreateBuyerRequest): Promise<void> => {
+    await apiClient.post('/admin/buyers/create', data);
   },
 
   getById: async (id: number): Promise<BuyerDetail> => {

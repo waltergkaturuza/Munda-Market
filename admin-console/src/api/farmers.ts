@@ -27,10 +27,22 @@ export interface UpdateFarmerRequest {
   is_verified?: boolean;
 }
 
+export interface CreateFarmerRequest {
+  name: string;
+  phone: string;
+  email?: string;
+  password: string;
+  auto_activate?: boolean;
+}
+
 export const farmersApi = {
   getAll: async (): Promise<Farmer[]> => {
     const response = await apiClient.get<Farmer[]>('/admin/farmers');
     return response.data;
+  },
+
+  create: async (data: CreateFarmerRequest): Promise<void> => {
+    await apiClient.post('/admin/farmers/create', data);
   },
 
   getById: async (id: number): Promise<FarmerDetail> => {

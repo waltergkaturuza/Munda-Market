@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from datetime import datetime
 
 from ....core.database import get_db
-from ....core.auth import require_staff
+from ....core.auth import require_staff, get_password_hash
 from ....models.user import User, UserRole, UserStatus
 from ....models.farm import Farm
 from ....models.production import ProductionPlan
@@ -14,8 +14,190 @@ from ....models.order import Order, OrderStatus
 from ....models.payment import Payment, Payout
 from ....models.audit import AuditLog, AuditAction, AuditEntity
 from ....models.buyer import Buyer, BuyerTier, BuyerStatus, PaymentTerms
+from pydantic import BaseModel, EmailStr, validator
 
 router = APIRouter()
+
+
+# ============= User Creation Models =============
+class CreateBuyerRequest(BaseModel):
+    name: str
+    phone: str
+    email: Optional[EmailStr] = None
+    password: str
+    company_name: Optional[str] = None
+    business_type: Optional[str] = None
+    auto_activate: bool = True  # Auto-activate user and create profile
+    
+    @validator('phone')
+    def validate_phone(cls, v):
+        if not v.startswith('+263') and not v.startswith('0'):
+            raise ValueError('Phone number must start with +263 or 0')
+        return v
+    
+    @validator('password')
+    def validate_password(cls, v):
+        if len(v) < 6:
+            raise ValueError('Password must be at least 6 characters long')
+        return v
+
+
+class CreateFarmerRequest(BaseModel):
+    name: str
+    phone: str
+    email: Optional[EmailStr] = None
+    password: str
+    auto_activate: bool = True  # Auto-activate user
+    
+    @validator('phone')
+    def validate_phone(cls, v):
+        if not v.startswith('+263') and not v.startswith('0'):
+            raise ValueError('Phone number must start with +263 or 0')
+        return v
+    
+    @validator('password')
+    def validate_password(cls, v):
+        if len(v) < 6:
+            raise ValueError('Password must be at least 6 characters long')
+        return v
+
+
+# ============= Create Buyer =============
+@router.post("/admin/buyers/create", response_model=dict)
+async def create_buyer(
+    buyer_data: CreateBuyerRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_staff)
+):
+    """Create a new buyer user (admin only)"""
+    
+    # Check if user already exists
+    existing_user = db.query(User).filter(
+        (User.phone == buyer_data.phone) | 
+        (User.email == buyer_data.email if buyer_data.email else False)
+    ).first()
+    
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User with this phone number or email already exists"
+        )
+    
+    # Create new buyer user
+    hashed_password = get_password_hash(buyer_data.password)
+    
+    new_user = User(
+        name=buyer_data.name,
+        phone=buyer_data.phone,
+        email=buyer_data.email,
+        role=UserRole.BUYER,
+        hashed_password=hashed_password,
+        status=UserStatus.ACTIVE if buyer_data.auto_activate else UserStatus.PENDING,
+        is_verified=buyer_data.auto_activate
+    )
+    
+    db.add(new_user)
+    db.flush()
+    
+    # Create buyer profile if company_name provided or auto_activate
+    buyer_profile = None
+    if buyer_data.company_name or buyer_data.auto_activate:
+        buyer_profile = Buyer(
+            user_id=new_user.user_id,
+            company_name=buyer_data.company_name or buyer_data.name,
+            business_type=buyer_data.business_type,
+            business_phone=buyer_data.phone,
+            business_email=buyer_data.email,
+            payment_terms=PaymentTerms.PREPAID,
+            status=BuyerStatus.ACTIVE if buyer_data.auto_activate else BuyerStatus.PENDING,
+            buyer_tier=BuyerTier.BASIC
+        )
+        db.add(buyer_profile)
+    
+    # Log action
+    audit = AuditLog(
+        user_id=current_user.user_id,
+        user_name=current_user.name,
+        action=AuditAction.CREATE,
+        entity=AuditEntity.USER,
+        entity_id=new_user.user_id,
+        description=f"Buyer created: {buyer_data.name} ({buyer_data.phone})"
+    )
+    db.add(audit)
+    db.commit()
+    db.refresh(new_user)
+    if buyer_profile:
+        db.refresh(buyer_profile)
+    
+    return {
+        "message": "Buyer created successfully",
+        "user_id": new_user.user_id,
+        "buyer_id": buyer_profile.buyer_id if buyer_profile else None,
+        "name": new_user.name,
+        "phone": new_user.phone,
+        "email": new_user.email,
+        "status": new_user.status.value,
+        "profile_created": buyer_profile is not None
+    }
+
+
+# ============= Create Farmer =============
+@router.post("/admin/farmers/create", response_model=dict)
+async def create_farmer(
+    farmer_data: CreateFarmerRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_staff)
+):
+    """Create a new farmer user (admin only)"""
+    
+    # Check if user already exists
+    existing_user = db.query(User).filter(
+        (User.phone == farmer_data.phone) | 
+        (User.email == farmer_data.email if farmer_data.email else False)
+    ).first()
+    
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User with this phone number or email already exists"
+        )
+    
+    # Create new farmer user
+    hashed_password = get_password_hash(farmer_data.password)
+    
+    new_user = User(
+        name=farmer_data.name,
+        phone=farmer_data.phone,
+        email=farmer_data.email,
+        role=UserRole.FARMER,
+        hashed_password=hashed_password,
+        status=UserStatus.ACTIVE if farmer_data.auto_activate else UserStatus.PENDING,
+        is_verified=farmer_data.auto_activate
+    )
+    
+    db.add(new_user)
+    
+    # Log action
+    audit = AuditLog(
+        user_id=current_user.user_id,
+        user_name=current_user.name,
+        action=AuditAction.CREATE,
+        entity=AuditEntity.USER,
+        entity_id=new_user.user_id,
+        description=f"Farmer created: {farmer_data.name} ({farmer_data.phone})"
+    )
+    db.add(audit)
+    db.commit()
+    db.refresh(new_user)
+    
+    return {
+        "message": "Farmer created successfully",
+        "user_id": new_user.user_id,
+        "name": new_user.name,
+        "phone": new_user.phone,
+        "email": new_user.email,
+        "status": new_user.status.value
+    }
 
 
 # ============= Farmers Management =============
