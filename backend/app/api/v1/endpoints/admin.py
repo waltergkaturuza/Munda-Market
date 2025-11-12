@@ -34,6 +34,10 @@ class DashboardStats(BaseModel):
     revenue_this_month_usd: float
     pending_payouts_usd: float
     pending_kyc_count: int
+    buyers_with_stock: int
+    total_buyer_stock_value: float
+    items_low_stock: int
+    items_expiring_soon: int
 
 
 @router.get("/dashboard/stats", response_model=DashboardStats)
@@ -94,6 +98,28 @@ async def get_dashboard_stats(
         User.is_verified == False
     ).count()
     
+    # Buyer inventory stats
+    from ....models.buyer_stock import BuyerStock
+    buyer_stocks = db.query(BuyerStock).filter(BuyerStock.is_active == True).all()
+    buyer_ids_with_stock = list(set([s.buyer_user_id for s in buyer_stocks]))
+    buyers_with_stock = len(buyer_ids_with_stock)
+    total_buyer_stock_value = sum(s.total_value_usd or 0.0 for s in buyer_stocks)
+    
+    now = datetime.utcnow()
+    items_low_stock = 0
+    items_expiring_soon = 0
+    
+    for stock in buyer_stocks:
+        # Check stock level
+        if stock.reorder_point_kg and stock.current_quantity_kg <= stock.reorder_point_kg:
+            items_low_stock += 1
+        
+        # Check expiry
+        if stock.expiry_date:
+            days_until_expiry = (stock.expiry_date - now).days
+            if days_until_expiry >= 0 and days_until_expiry <= 2:
+                items_expiring_soon += 1
+    
     return DashboardStats(
         total_farmers=total_farmers,
         active_farmers=active_farmers,
@@ -106,7 +132,11 @@ async def get_dashboard_stats(
         total_revenue_usd=float(total_revenue),
         revenue_this_month_usd=float(revenue_this_month),
         pending_payouts_usd=float(pending_payouts),
-        pending_kyc_count=pending_kyc
+        pending_kyc_count=pending_kyc,
+        buyers_with_stock=buyers_with_stock,
+        total_buyer_stock_value=float(total_buyer_stock_value),
+        items_low_stock=items_low_stock,
+        items_expiring_soon=items_expiring_soon
     )
 
 
