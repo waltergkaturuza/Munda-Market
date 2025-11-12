@@ -15,6 +15,7 @@ from ....models.production import ProductionPlan, ProductionStatus
 from ....models.payment import Payout, PayoutStatus
 from ....models.audit import AuditLog, AuditAction, AuditEntity
 from ....models.pricing import PriceRule
+from ....services.inventory_alerts import generate_inventory_alerts
 
 router = APIRouter()
 
@@ -535,3 +536,20 @@ async def get_audit_logs(
         ))
     
     return result
+
+
+# ============= Inventory Alert Generation =============
+@router.post("/inventory/generate-alerts")
+async def trigger_alert_generation(
+    buyer_id: Optional[int] = Query(None, description="Optional: Generate alerts for specific buyer"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_staff)
+):
+    """Manually trigger inventory alert generation (admin only)"""
+    result = generate_inventory_alerts(db, buyer_user_id=buyer_id)
+    return {
+        "message": "Alert generation completed",
+        "alerts_created": result["alerts_created"],
+        "alerts_updated": result["alerts_updated"],
+        "preferences_processed": result["total_processed"]
+    }

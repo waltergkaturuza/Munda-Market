@@ -22,3 +22,5 @@ pytest==7.4.3
 pytest-asyncio==0.21.1
 httpx==0.25.2
 reportlab==4.2.5
+apscheduler==3.10.4
+twilio==9.2.3

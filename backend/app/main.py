@@ -8,6 +8,7 @@ import logging
 from .core.config import settings
 from .core.database import create_tables
 from .api.v1 import api_router
+from .services.scheduler import start_scheduler, stop_scheduler
 
 # Configure logging
 logging.basicConfig(
@@ -109,11 +110,19 @@ async def startup_event():
             logger.info("Database tables created/verified")
         except Exception as e:
             logger.error(f"Error creating database tables: {e}")
+    
+    # Start background scheduler for alerts and stock history
+    try:
+        start_scheduler()
+        logger.info("Background scheduler started")
+    except Exception as e:
+        logger.error(f"Error starting scheduler: {e}")
 
 # Shutdown event
 @app.on_event("shutdown")
 async def shutdown_event():
     logger.info(f"Shutting down {settings.PROJECT_NAME}")
+    stop_scheduler()
 
 if __name__ == "__main__":
     import uvicorn

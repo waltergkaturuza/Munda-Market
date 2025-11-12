@@ -25,9 +25,11 @@ import {
   CheckCircle,
 } from '@mui/icons-material';
 import { useAuth } from '../services/auth';
-import { useQuery } from 'react-query';
+import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { bannersApi } from '../services/banners';
+import { inventoryApi } from '../services/inventory';
 import Banner from '../components/Banner';
+import InventoryAlerts from '../components/InventoryAlerts';
 
 // Mock data - in real app this would come from API
 const dashboardData = {
@@ -148,12 +150,41 @@ function getStatusIcon(status) {
 
 function Dashboard() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const { data: banners = [] } = useQuery({
     queryKey: ['dashboard-banners', 'buyer'],
     queryFn: bannersApi.getActiveBanners,
     refetchInterval: 60000, // Refresh every minute
   });
+
+  const { data: alerts = [] } = useQuery({
+    queryKey: ['inventory-alerts'],
+    queryFn: () => inventoryApi.getAlerts({ status_filter: 'active' }),
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
+  const acknowledgeMutation = useMutation({
+    mutationFn: inventoryApi.acknowledgeAlert,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inventory-alerts'] });
+    },
+  });
+
+  const dismissMutation = useMutation({
+    mutationFn: inventoryApi.dismissAlert,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inventory-alerts'] });
+    },
+  });
+
+  const handleAcknowledge = (alertId) => {
+    acknowledgeMutation.mutate(alertId);
+  };
+
+  const handleDismiss = (alertId) => {
+    dismissMutation.mutate(alertId);
+  };
 
   return (
     <Box>
@@ -168,6 +199,13 @@ function Dashboard() {
       {banners.map((banner) => (
         <Banner key={banner.banner_id} banner={banner} />
       ))}
+
+      {/* Inventory Alerts */}
+      <InventoryAlerts
+        alerts={alerts}
+        onAcknowledge={handleAcknowledge}
+        onDismiss={handleDismiss}
+      />
 
       {/* Stats Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>

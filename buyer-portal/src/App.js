@@ -12,6 +12,7 @@ import Profile from './pages/Profile';
 import Invoices from './pages/Invoices';
 import Analytics from './pages/Analytics';
 import Checkout from './pages/Checkout';
+import InventoryMonitoring from './pages/InventoryMonitoring';
 import { AuthProvider, useAuth } from './services/auth';
 import { CartProvider } from './services/cart';
 
@@ -68,6 +69,7 @@ function AppContent() {
             <Route path="/profile" element={<Profile />} />
             <Route path="/invoices" element={<Invoices />} />
             <Route path="/analytics" element={<Analytics />} />
+            <Route path="/inventory" element={<InventoryMonitoring />} />
           </Routes>
         </Container>
       </Box>

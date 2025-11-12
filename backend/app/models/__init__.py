@@ -11,6 +11,8 @@ from .logistics import Shipment
 from .quality import QCCheck
 from .audit import AuditLog, SecurityEvent
 from .banner import Banner, BannerType, BannerPlatform
+from .buyer_inventory import BuyerInventoryPreference, InventoryAlert, AlertSeverity, AlertStatus
+from .stock_history import StockHistory
 
 __all__ = [
     "User",
@@ -32,5 +34,10 @@ __all__ = [
     "SecurityEvent",
     "Banner",
     "BannerType",
-    "BannerPlatform"
+    "BannerPlatform",
+    "BuyerInventoryPreference",
+    "InventoryAlert",
+    "AlertSeverity",
+    "AlertStatus",
+    "StockHistory"
 ]

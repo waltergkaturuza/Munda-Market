@@ -16,7 +16,8 @@ from .endpoints import (
     admin,
     admin_users,
     settings,
-    banners
+    banners,
+    inventory_alerts
 )
 
 # Create main API router
@@ -41,3 +42,4 @@ api_router.include_router(admin_users.router, tags=["Admin Users"])
 # Admin routes (some at root level like /dashboard/stats, others at /admin)
 api_router.include_router(admin.router, tags=["Administration"])
 api_router.include_router(banners.router, prefix="/banners", tags=["Banners"])
+api_router.include_router(inventory_alerts.router, prefix="/inventory", tags=["Inventory Alerts"])

@@ -18,6 +18,7 @@ import {
   Receipt,
   Person,
   TrendingUp,
+  Inventory,
 } from '@mui/icons-material';
 
 const drawerWidth = 240;
@@ -47,6 +48,11 @@ const menuItems = [
     text: 'Analytics',
     icon: <TrendingUp />,
     path: '/analytics',
+  },
+  {
+    text: 'Inventory',
+    icon: <Inventory />,
+    path: '/inventory',
   },
 ];
 
