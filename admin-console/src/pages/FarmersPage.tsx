@@ -481,6 +481,87 @@ export default function FarmersPage() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Create Farmer Dialog */}
+      <Dialog
+        open={createFarmerDialogOpen}
+        onClose={() => setCreateFarmerDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Create New Farmer</DialogTitle>
+        <DialogContent>
+          <Box display="flex" flexDirection="column" gap={2} pt={1}>
+            <TextField
+              fullWidth
+              label="Full Name"
+              value={createFarmerForm.name}
+              onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, name: e.target.value })}
+              required
+            />
+            <TextField
+              fullWidth
+              label="Phone Number"
+              value={createFarmerForm.phone}
+              onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, phone: e.target.value })}
+              required
+              placeholder="+263771234567"
+              helperText="Must start with +263 or 0"
+            />
+            <TextField
+              fullWidth
+              label="Email (Optional)"
+              type="email"
+              value={createFarmerForm.email}
+              onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, email: e.target.value })}
+            />
+            <TextField
+              fullWidth
+              label="Password"
+              type="password"
+              value={createFarmerForm.password}
+              onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, password: e.target.value })}
+              required
+              helperText="Minimum 6 characters"
+            />
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={createFarmerForm.auto_activate}
+                  onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, auto_activate: e.target.checked })}
+                />
+              }
+              label="Auto-activate account (farmer can login immediately)"
+            />
+            <Typography variant="body2" color="text.secondary">
+              Note: Farmer will need to register farms after login to start using the platform.
+            </Typography>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCreateFarmerDialogOpen(false)}>Cancel</Button>
+          <Button
+            onClick={() => {
+              createFarmerMutation.mutate({
+                name: createFarmerForm.name,
+                phone: createFarmerForm.phone,
+                email: createFarmerForm.email || undefined,
+                password: createFarmerForm.password,
+                auto_activate: createFarmerForm.auto_activate,
+              });
+            }}
+            variant="contained"
+            disabled={
+              !createFarmerForm.name ||
+              !createFarmerForm.phone ||
+              !createFarmerForm.password ||
+              createFarmerMutation.isPending
+            }
+          >
+            {createFarmerMutation.isPending ? 'Creating...' : 'Create Farmer'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
