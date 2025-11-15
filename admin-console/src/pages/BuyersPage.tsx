@@ -179,12 +179,23 @@ export default function BuyersPage() {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom fontWeight="bold">
-        Buyers Management
-      </Typography>
-      <Typography variant="body1" color="text.secondary" mb={3}>
-        Manage buyer accounts, purchase history, and spending
-      </Typography>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Box>
+          <Typography variant="h4" gutterBottom fontWeight="bold">
+            Buyers Management
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Manage buyer accounts, purchase history, and spending
+          </Typography>
+        </Box>
+        <Button
+          variant="contained"
+          startIcon={<Add />}
+          onClick={() => setCreateBuyerDialogOpen(true)}
+        >
+          Create Buyer
+        </Button>
+      </Box>
 
       {/* Summary Cards */}
       <Grid container spacing={3} mb={3}>
