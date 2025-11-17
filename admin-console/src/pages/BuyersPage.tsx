@@ -36,6 +36,7 @@ import { MoreVert, Visibility, Block, CheckCircle, Phone, Email, Business, Add }
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { buyersApi, Buyer, CreateBuyerProfileRequest, CreateBuyerRequest } from '@/api/buyers';
 import { inventoryApi } from '@/api/inventory';
+import { Crop } from '@/types';
 
 const statusColors: Record<string, 'default' | 'success' | 'warning' | 'error'> = {
   PENDING: 'warning',
@@ -137,6 +138,11 @@ export default function BuyersPage() {
       setCreateProfileDialogOpen(false);
       setProfileData({ company_name: '', business_type: '', business_phone: '', business_email: '' });
     },
+  });
+
+  const { data: crops } = useQuery<Crop[]>({
+    queryKey: ['crops'],
+    queryFn: inventoryApi.getCrops,
   });
 
   const createBuyerMutation = useMutation({

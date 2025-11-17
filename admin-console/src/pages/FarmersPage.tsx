@@ -37,6 +37,7 @@ import { MoreVert, Visibility, Block, CheckCircle, Phone, Email, Add, Refresh, B
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { farmersApi, Farmer, CreateFarmRequest, CreateFarmerRequest } from '@/api/farmers';
 import { inventoryApi } from '@/api/inventory';
+import { Crop } from '@/types';
 
 const statusColors: Record<string, 'default' | 'success' | 'warning' | 'error'> = {
   PENDING: 'warning',
@@ -143,6 +144,11 @@ export default function FarmersPage() {
       queryClient.invalidateQueries({ queryKey: ['farmers'] });
       setActionDialogOpen(false);
     },
+  });
+
+  const { data: crops } = useQuery<Crop[]>({
+    queryKey: ['crops'],
+    queryFn: inventoryApi.getCrops,
   });
 
   const createFarmerMutation = useMutation({
