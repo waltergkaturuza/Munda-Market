@@ -73,27 +73,36 @@ class CustomCORSMiddleware(BaseHTTPMiddleware):
             elif re.match(r"https://.*\.vercel\.app", origin):
                 logger.info(f"Allowing Vercel origin: {origin}")
                 is_allowed = True
+            else:
+                logger.warning(f"CORS: Origin not allowed: {origin}")
         
         # Handle preflight OPTIONS request
-        if request.method == "OPTIONS" and is_allowed:
-            response = Response()
-            response.headers["Access-Control-Allow-Origin"] = origin
-            response.headers["Access-Control-Allow-Credentials"] = "true"
-            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS"
-            response.headers["Access-Control-Allow-Headers"] = "*"
-            response.headers["Access-Control-Max-Age"] = "3600"
-            return response
+        if request.method == "OPTIONS":
+            if is_allowed and origin:
+                response = Response(status_code=200)
+                response.headers["Access-Control-Allow-Origin"] = origin
+                response.headers["Access-Control-Allow-Credentials"] = "true"
+                response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+                response.headers["Access-Control-Allow-Headers"] = "*"
+                response.headers["Access-Control-Max-Age"] = "3600"
+                logger.info(f"CORS: Allowed OPTIONS preflight for origin: {origin}")
+                return response
+            else:
+                # Reject preflight for disallowed origins
+                logger.warning(f"CORS: Rejected OPTIONS preflight for origin: {origin}")
+                return Response(status_code=403)
         
         # Process the request
         response = await call_next(request)
         
         # Add CORS headers to response if origin is allowed
-        if is_allowed:
+        if is_allowed and origin:
             response.headers["Access-Control-Allow-Origin"] = origin
             response.headers["Access-Control-Allow-Credentials"] = "true"
             response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS"
             response.headers["Access-Control-Allow-Headers"] = "*"
             response.headers["Access-Control-Expose-Headers"] = "*"
+            logger.debug(f"CORS: Added headers for origin: {origin}")
         
         return response
 

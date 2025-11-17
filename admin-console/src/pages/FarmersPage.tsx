@@ -1009,6 +1009,7 @@ export default function FarmersPage() {
                       {selectedCropCategory && (
                         <Autocomplete
                           multiple
+                          disableCloseOnSelect
                           options={CROP_TYPES[selectedCropCategory] || []}
                           getOptionLabel={(option) => option}
                           value={(() => {
@@ -1049,8 +1050,12 @@ export default function FarmersPage() {
                             <TextField {...params} label={`Select ${selectedCropCategory}`} placeholder="Choose crops..." />
                           )}
                           renderOption={(props, option, { selected }) => (
-                            <li {...props}>
-                              <Checkbox checked={selected} />
+                            <li {...props} key={option}>
+                              <Checkbox
+                                checked={selected}
+                                sx={{ mr: 1 }}
+                                onClick={(e) => e.stopPropagation()}
+                              />
                               <ListItemText primary={option} />
                             </li>
                           )}
@@ -1061,6 +1066,7 @@ export default function FarmersPage() {
                       {crops && (
                         <Autocomplete
                           multiple
+                          disableCloseOnSelect
                           options={crops}
                           getOptionLabel={(option) => option.crop_name}
                           value={crops.filter((crop) => createFarmerForm.preferred_crops?.includes(crop.crop_id))}
@@ -1074,8 +1080,12 @@ export default function FarmersPage() {
                             <TextField {...params} label="Or Select from All Available Crops" placeholder="Choose crops..." />
                           )}
                           renderOption={(props, option, { selected }) => (
-                            <li {...props}>
-                              <Checkbox checked={selected} />
+                            <li {...props} key={option.crop_id}>
+                              <Checkbox
+                                checked={selected}
+                                sx={{ mr: 1 }}
+                                onClick={(e) => e.stopPropagation()}
+                              />
                               <ListItemText primary={option.crop_name} />
                             </li>
                           )}
