@@ -1,9 +1,9 @@
 from fastapi import FastAPI, Request, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 import time
 import logging
+import re
 
 from .core.config import settings
 from .core.database import create_tables
@@ -50,30 +50,54 @@ logger.info(f"CORS configured with {len(allowed_origins)} allowed origins")
 if settings.DEBUG:
     logger.info(f"DEBUG mode: CORS origins = {allowed_origins}")
 
-# Custom origin validator function for CORS
-def is_allowed_origin(origin: str) -> bool:
-    """Check if origin is allowed (explicit list or Vercel preview)"""
-    if not origin:
-        return False
-    # Check explicit list
-    if origin in allowed_origins:
-        return True
-    # Allow all Vercel preview deployments (*.vercel.app)
-    if origin.endswith(".vercel.app"):
-        logger.info(f"Allowing Vercel preview origin: {origin}")
-        return True
-    return False
+# Custom CORS middleware to handle both explicit origins and regex patterns
+# This is needed because FastAPI's CORSMiddleware doesn't support both
+# allow_origin_regex and allow_origins together with allow_credentials=True
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request as StarletteRequest
+from starlette.responses import Response
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origin_regex=r"https://.*\.vercel\.app",  # Allow all Vercel preview deployments
-    allow_origins=allowed_origins,  # Explicit list of production URLs
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allow_headers=["*"],
-    expose_headers=["*"],
-    max_age=3600,  # Cache preflight requests for 1 hour
-)
+class CustomCORSMiddleware(BaseHTTPMiddleware):
+    """Custom CORS middleware that supports both explicit origins and regex patterns"""
+    
+    async def dispatch(self, request: StarletteRequest, call_next):
+        origin = request.headers.get("origin")
+        
+        # Check if origin is allowed
+        is_allowed = False
+        if origin:
+            # Check explicit list
+            if origin in allowed_origins:
+                is_allowed = True
+            # Check regex pattern for Vercel deployments
+            elif re.match(r"https://.*\.vercel\.app", origin):
+                logger.info(f"Allowing Vercel origin: {origin}")
+                is_allowed = True
+        
+        # Handle preflight OPTIONS request
+        if request.method == "OPTIONS" and is_allowed:
+            response = Response()
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+            response.headers["Access-Control-Allow-Headers"] = "*"
+            response.headers["Access-Control-Max-Age"] = "3600"
+            return response
+        
+        # Process the request
+        response = await call_next(request)
+        
+        # Add CORS headers to response if origin is allowed
+        if is_allowed:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+            response.headers["Access-Control-Allow-Headers"] = "*"
+            response.headers["Access-Control-Expose-Headers"] = "*"
+        
+        return response
+
+app.add_middleware(CustomCORSMiddleware)
 
 # Trusted hosts middleware (security)
 if not settings.DEBUG:
