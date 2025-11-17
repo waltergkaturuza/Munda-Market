@@ -35,6 +35,24 @@ export interface CreateFarmerRequest {
   auto_activate?: boolean;
 }
 
+export interface CreateFarmRequest {
+  name: string;
+  geohash: string;
+  latitude: number;
+  longitude: number;
+  ward?: string;
+  district: string;
+  province: string;
+  address_line1?: string;
+  address_line2?: string;
+  postal_code?: string;
+  total_hectares?: number;
+  farm_type?: string;
+  irrigation_available?: string;
+  association_name?: string;
+  association_membership_id?: string;
+}
+
 export const farmersApi = {
   getAll: async (): Promise<Farmer[]> => {
     const response = await apiClient.get<Farmer[]>('/admin/farmers');
@@ -65,6 +83,10 @@ export const farmersApi = {
   getFarms: async (farmerId: number): Promise<Farm[]> => {
     const response = await apiClient.get<Farm[]>(`/admin/farmers/${farmerId}/farms`);
     return response.data;
+  },
+
+  createFarm: async (farmerId: number, data: CreateFarmRequest): Promise<void> => {
+    await apiClient.post(`/admin/farmers/${farmerId}/farms`, data);
   },
 };
 

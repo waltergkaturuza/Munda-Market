@@ -14,6 +14,7 @@ from ....models.order import Order, OrderStatus
 from ....models.payment import Payment, Payout
 from ....models.audit import AuditLog, AuditAction, AuditEntity
 from ....models.buyer import Buyer, BuyerTier, BuyerStatus, PaymentTerms
+from ....models.farm import Farm
 from pydantic import BaseModel, EmailStr, validator
 
 router = APIRouter()
@@ -375,6 +376,96 @@ async def get_farmer_farms(
         }
         for f in farms
     ]
+
+
+class CreateFarmRequest(BaseModel):
+    name: str
+    geohash: str
+    latitude: float
+    longitude: float
+    ward: Optional[str] = None
+    district: str
+    province: str
+    address_line1: Optional[str] = None
+    address_line2: Optional[str] = None
+    postal_code: Optional[str] = None
+    total_hectares: Optional[float] = None
+    farm_type: Optional[str] = None
+    irrigation_available: Optional[str] = None
+    association_name: Optional[str] = None
+    association_membership_id: Optional[str] = None
+    
+    @validator('latitude')
+    def validate_latitude(cls, v):
+        if not -90 <= v <= 90:
+            raise ValueError('Latitude must be between -90 and 90')
+        return v
+    
+    @validator('longitude')
+    def validate_longitude(cls, v):
+        if not -180 <= v <= 180:
+            raise ValueError('Longitude must be between -180 and 180')
+        return v
+
+
+@router.post("/admin/farmers/{farmer_id}/farms", response_model=dict)
+async def create_farm_for_farmer(
+    farmer_id: int,
+    farm_data: CreateFarmRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_staff)
+):
+    """Create a farm for a farmer (admin only)"""
+    farmer = db.query(User).filter(
+        User.user_id == farmer_id,
+        User.role == UserRole.FARMER
+    ).first()
+    
+    if not farmer:
+        raise HTTPException(status_code=404, detail="Farmer not found")
+    
+    # Create farm
+    farm = Farm(
+        user_id=farmer_id,
+        name=farm_data.name,
+        geohash=farm_data.geohash,
+        latitude=farm_data.latitude,
+        longitude=farm_data.longitude,
+        ward=farm_data.ward,
+        district=farm_data.district,
+        province=farm_data.province,
+        address_line1=farm_data.address_line1,
+        address_line2=farm_data.address_line2,
+        postal_code=farm_data.postal_code,
+        total_hectares=farm_data.total_hectares,
+        farm_type=farm_data.farm_type,
+        irrigation_available=farm_data.irrigation_available,
+        association_name=farm_data.association_name,
+        association_membership_id=farm_data.association_membership_id
+    )
+    
+    db.add(farm)
+    
+    # Log action
+    audit = AuditLog(
+        user_id=current_user.user_id,
+        user_name=current_user.name,
+        action=AuditAction.CREATE,
+        entity=AuditEntity.USER,
+        entity_id=farmer_id,
+        description=f"Farm created for farmer {farmer.name}: {farm_data.name}"
+    )
+    db.add(audit)
+    db.commit()
+    db.refresh(farm)
+    
+    return {
+        "message": "Farm created successfully",
+        "farm_id": farm.farm_id,
+        "farm_name": farm.name,
+        "farmer_id": farmer_id,
+        "farmer_name": farmer.name
+    }
 
 
 @router.post("/admin/farmers/{farmer_id}/suspend")

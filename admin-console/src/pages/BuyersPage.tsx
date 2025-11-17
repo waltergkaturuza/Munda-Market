@@ -46,7 +46,7 @@ export default function BuyersPage() {
   const [selectedBuyer, setSelectedBuyer] = useState<Buyer | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [actionDialogOpen, setActionDialogOpen] = useState(false);
-  const [actionType, setActionType] = useState<'suspend' | 'activate'>('suspend');
+  const [actionType, setActionType] = useState<'suspend' | 'activate' | 'create-profile'>('suspend');
   const [actionReason, setActionReason] = useState('');
   const [anchorEl, setAnchorEl] = useState<{ [key: number]: HTMLElement | null }>({});
   const [createBuyerDialogOpen, setCreateBuyerDialogOpen] = useState(false);

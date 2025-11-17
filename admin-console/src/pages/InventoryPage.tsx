@@ -21,9 +21,6 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  TextField,
-  IconButton,
-  Tooltip,
   LinearProgress,
 } from '@mui/material';
 import {
@@ -33,14 +30,12 @@ import {
   CheckCircle,
   Error,
   Refresh,
-  ShoppingCart,
-  FilterList,
   Business,
 } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
 import { adminInventoryApi } from '@/api/adminInventory';
 import { buyersApi } from '@/api/buyers';
-import { api } from '@/api/client';
+import apiClient from '@/api/client';
 
 function TabPanel({ children, value, index }: { children: React.ReactNode; value: number; index: number }) {
   return (
@@ -92,7 +87,7 @@ export default function InventoryPage() {
   // Fetch buyers and crops for filters
   React.useEffect(() => {
     buyersApi.getAll().then((data) => setBuyers(data));
-    api.get('/crops/').then((response) => setCrops(response.data || []));
+    apiClient.get('/crops/').then((response: any) => setCrops(response.data || []));
   }, []);
 
   // Dashboard Metrics
@@ -203,7 +198,7 @@ export default function InventoryPage() {
         )
       )}
 
-      <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)} sx={{ mb: 3 }}>
+      <Tabs value={tabValue} onChange={(_e, newValue) => setTabValue(newValue)} sx={{ mb: 3 }}>
         <Tab label="Buyer Summaries" icon={<Business />} iconPosition="start" />
         <Tab label="All Stock Items" icon={<Inventory />} iconPosition="start" />
         <Tab label="Sales Intensity" icon={<TrendingUp />} iconPosition="start" />

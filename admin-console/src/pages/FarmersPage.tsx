@@ -28,10 +28,11 @@ import {
   Divider,
   FormControlLabel,
   Switch,
+  Alert,
 } from '@mui/material';
-import { MoreVert, Visibility, Block, CheckCircle, Phone, Email, Add } from '@mui/icons-material';
+import { MoreVert, Visibility, Block, CheckCircle, Phone, Email, Add, Refresh, Business } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { farmersApi, Farmer } from '@/api/farmers';
+import { farmersApi, Farmer, CreateFarmRequest } from '@/api/farmers';
 
 const statusColors: Record<string, 'default' | 'success' | 'warning' | 'error'> = {
   PENDING: 'warning',
@@ -57,10 +58,39 @@ export default function FarmersPage() {
     password: '',
     auto_activate: true,
   });
+  const [createFarmDialogOpen, setCreateFarmDialogOpen] = useState(false);
+  const [createFarmForm, setCreateFarmForm] = useState<CreateFarmRequest>({
+    name: '',
+    geohash: '',
+    latitude: -17.8292,
+    longitude: 31.0522,
+    district: '',
+    province: '',
+    ward: '',
+    address_line1: '',
+    address_line2: '',
+    postal_code: '',
+    total_hectares: undefined,
+    farm_type: '',
+    irrigation_available: '',
+    association_name: '',
+    association_membership_id: '',
+  });
 
-  const { data: farmers, isLoading } = useQuery({
+  const { data: farmers, isLoading, error, refetch } = useQuery({
     queryKey: ['farmers'],
-    queryFn: farmersApi.getAll,
+    queryFn: async () => {
+      try {
+        const data = await farmersApi.getAll();
+        console.log('Farmers fetched:', data);
+        return data || [];
+      } catch (err) {
+        console.error('Error fetching farmers:', err);
+        throw err;
+      }
+    },
+    retry: 1,
+    refetchOnWindowFocus: false,
   });
 
   const { data: farmerDetails, isLoading: detailsLoading } = useQuery({
@@ -102,6 +132,33 @@ export default function FarmersPage() {
     },
   });
 
+  const createFarmMutation = useMutation({
+    mutationFn: ({ farmerId, data }: { farmerId: number; data: CreateFarmRequest }) =>
+      farmersApi.createFarm(farmerId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['farmers'] });
+      queryClient.invalidateQueries({ queryKey: ['farmer-details', selectedFarmer?.user_id] });
+      setCreateFarmDialogOpen(false);
+      setCreateFarmForm({
+        name: '',
+        geohash: '',
+        latitude: -17.8292,
+        longitude: 31.0522,
+        district: '',
+        province: '',
+        ward: '',
+        address_line1: '',
+        address_line2: '',
+        postal_code: '',
+        total_hectares: undefined,
+        farm_type: '',
+        irrigation_available: '',
+        association_name: '',
+        association_membership_id: '',
+      });
+    },
+  });
+
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, farmerId: number) => {
     setAnchorEl({ ...anchorEl, [farmerId]: event.currentTarget });
   };
@@ -115,10 +172,31 @@ export default function FarmersPage() {
     setDetailsDialogOpen(true);
   };
 
-  const handleOpenAction = (farmer: Farmer, action: 'suspend' | 'activate') => {
+  const handleOpenAction = (farmer: Farmer, action: 'suspend' | 'activate' | 'create-farm') => {
     setSelectedFarmer(farmer);
-    setActionType(action);
-    setActionDialogOpen(true);
+    if (action === 'create-farm') {
+      setCreateFarmForm({
+        name: '',
+        geohash: '',
+        latitude: -17.8292,
+        longitude: 31.0522,
+        district: '',
+        province: '',
+        ward: '',
+        address_line1: '',
+        address_line2: '',
+        postal_code: '',
+        total_hectares: undefined,
+        farm_type: '',
+        irrigation_available: '',
+        association_name: '',
+        association_membership_id: '',
+      });
+      setCreateFarmDialogOpen(true);
+    } else {
+      setActionType(action);
+      setActionDialogOpen(true);
+    }
   };
 
   const handleConfirmAction = () => {
@@ -131,9 +209,11 @@ export default function FarmersPage() {
     }
   };
 
-  const activeFarmers = farmers?.filter((f) => f.status === 'ACTIVE') || [];
-  const pendingFarmers = farmers?.filter((f) => f.status === 'PENDING') || [];
-  const suspendedFarmers = farmers?.filter((f) => f.status === 'SUSPENDED') || [];
+  // Ensure farmers is always an array
+  const farmersList = Array.isArray(farmers) ? farmers : [];
+  const activeFarmers = farmersList.filter((f) => f.status === 'ACTIVE');
+  const pendingFarmers = farmersList.filter((f) => f.status === 'PENDING');
+  const suspendedFarmers = farmersList.filter((f) => f.status === 'SUSPENDED');
 
   const displayFarmers =
     tabValue === 0 ? activeFarmers : tabValue === 1 ? pendingFarmers : suspendedFarmers;
@@ -148,6 +228,23 @@ export default function FarmersPage() {
 
   return (
     <Box>
+      {error && (
+        <Alert 
+          severity="error" 
+          action={
+            <Button color="inherit" size="small" onClick={() => refetch()}>
+              <Refresh sx={{ mr: 1 }} /> Retry
+            </Button>
+          }
+          sx={{ mb: 2 }}
+        >
+          Failed to load farmers: {
+            (error as any)?.message || 
+            (error as any)?.response?.data?.detail || 
+            'Unknown error. Please check your connection and try again.'
+          }
+        </Alert>
+      )}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Box>
           <Typography variant="h4" gutterBottom fontWeight="bold">
@@ -157,13 +254,23 @@ export default function FarmersPage() {
             Manage farmer accounts, production plans, and earnings
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => setCreateFarmerDialogOpen(true)}
-        >
-          Create Farmer
-        </Button>
+        <Box display="flex" gap={2}>
+          <Button
+            variant="outlined"
+            startIcon={<Refresh />}
+            onClick={() => refetch()}
+            disabled={isLoading}
+          >
+            Refresh
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => setCreateFarmerDialogOpen(true)}
+          >
+            Create Farmer
+          </Button>
+        </Box>
       </Box>
 
       {/* Summary Cards */}
@@ -175,7 +282,7 @@ export default function FarmersPage() {
                 Total Farmers
               </Typography>
               <Typography variant="h3" fontWeight="bold" color="primary">
-                {farmers?.length || 0}
+                {farmersList.length}
               </Typography>
             </CardContent>
           </Card>
@@ -307,6 +414,15 @@ export default function FarmersPage() {
                           Activate
                         </MenuItem>
                       )}
+                      <MenuItem
+                        onClick={() => {
+                          handleOpenAction(farmer, 'create-farm');
+                          handleMenuClose(farmer.user_id);
+                        }}
+                      >
+                        <Business fontSize="small" sx={{ mr: 1 }} />
+                        Create Farm
+                      </MenuItem>
                     </Menu>
                   </TableCell>
                 </TableRow>
@@ -559,6 +675,166 @@ export default function FarmersPage() {
             }
           >
             {createFarmerMutation.isPending ? 'Creating...' : 'Create Farmer'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Create Farm Dialog */}
+      <Dialog
+        open={createFarmDialogOpen}
+        onClose={() => setCreateFarmDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Create Farm for {selectedFarmer?.name}</DialogTitle>
+        <DialogContent>
+          <Box display="flex" flexDirection="column" gap={2} pt={1}>
+            <TextField
+              fullWidth
+              label="Farm Name"
+              value={createFarmForm.name}
+              onChange={(e) => setCreateFarmForm({ ...createFarmForm, name: e.target.value })}
+              required
+            />
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Latitude"
+                  type="number"
+                  value={createFarmForm.latitude}
+                  onChange={(e) => setCreateFarmForm({ ...createFarmForm, latitude: parseFloat(e.target.value) || 0 })}
+                  required
+                  inputProps={{ step: 'any' }}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Longitude"
+                  type="number"
+                  value={createFarmForm.longitude}
+                  onChange={(e) => setCreateFarmForm({ ...createFarmForm, longitude: parseFloat(e.target.value) || 0 })}
+                  required
+                  inputProps={{ step: 'any' }}
+                />
+              </Grid>
+            </Grid>
+            <TextField
+              fullWidth
+              label="Geohash"
+              value={createFarmForm.geohash}
+              onChange={(e) => setCreateFarmForm({ ...createFarmForm, geohash: e.target.value })}
+              required
+              helperText="Location geohash identifier"
+            />
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="District"
+                  value={createFarmForm.district}
+                  onChange={(e) => setCreateFarmForm({ ...createFarmForm, district: e.target.value })}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Province"
+                  value={createFarmForm.province}
+                  onChange={(e) => setCreateFarmForm({ ...createFarmForm, province: e.target.value })}
+                  required
+                />
+              </Grid>
+            </Grid>
+            <TextField
+              fullWidth
+              label="Ward (Optional)"
+              value={createFarmForm.ward}
+              onChange={(e) => setCreateFarmForm({ ...createFarmForm, ward: e.target.value })}
+            />
+            <TextField
+              fullWidth
+              label="Address Line 1 (Optional)"
+              value={createFarmForm.address_line1}
+              onChange={(e) => setCreateFarmForm({ ...createFarmForm, address_line1: e.target.value })}
+            />
+            <TextField
+              fullWidth
+              label="Address Line 2 (Optional)"
+              value={createFarmForm.address_line2}
+              onChange={(e) => setCreateFarmForm({ ...createFarmForm, address_line2: e.target.value })}
+            />
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Postal Code (Optional)"
+                  value={createFarmForm.postal_code}
+                  onChange={(e) => setCreateFarmForm({ ...createFarmForm, postal_code: e.target.value })}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Total Hectares (Optional)"
+                  type="number"
+                  value={createFarmForm.total_hectares || ''}
+                  onChange={(e) => setCreateFarmForm({ ...createFarmForm, total_hectares: e.target.value ? parseFloat(e.target.value) : undefined })}
+                  inputProps={{ step: 'any', min: 0 }}
+                />
+              </Grid>
+            </Grid>
+            <TextField
+              fullWidth
+              label="Farm Type (Optional)"
+              value={createFarmForm.farm_type}
+              onChange={(e) => setCreateFarmForm({ ...createFarmForm, farm_type: e.target.value })}
+              placeholder="e.g., Commercial, Subsistence, Organic"
+            />
+            <TextField
+              fullWidth
+              label="Irrigation Available (Optional)"
+              value={createFarmForm.irrigation_available}
+              onChange={(e) => setCreateFarmForm({ ...createFarmForm, irrigation_available: e.target.value })}
+              placeholder="e.g., Drip, Sprinkler, Rainfed"
+            />
+            <TextField
+              fullWidth
+              label="Association Name (Optional)"
+              value={createFarmForm.association_name}
+              onChange={(e) => setCreateFarmForm({ ...createFarmForm, association_name: e.target.value })}
+            />
+            <TextField
+              fullWidth
+              label="Association Membership ID (Optional)"
+              value={createFarmForm.association_membership_id}
+              onChange={(e) => setCreateFarmForm({ ...createFarmForm, association_membership_id: e.target.value })}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCreateFarmDialogOpen(false)}>Cancel</Button>
+          <Button
+            onClick={() => {
+              if (selectedFarmer) {
+                createFarmMutation.mutate({
+                  farmerId: selectedFarmer.user_id,
+                  data: createFarmForm,
+                });
+              }
+            }}
+            variant="contained"
+            disabled={
+              !createFarmForm.name ||
+              !createFarmForm.geohash ||
+              !createFarmForm.district ||
+              !createFarmForm.province ||
+              createFarmMutation.isPending
+            }
+          >
+            {createFarmMutation.isPending ? 'Creating...' : 'Create Farm'}
           </Button>
         </DialogActions>
       </Dialog>

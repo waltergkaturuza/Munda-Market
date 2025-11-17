@@ -1,196 +1,216 @@
-# Buyer and Farmer Registration Guide
+# Farmer & Buyer Self-Registration Guide
 
 ## Overview
 
-The Munda Market system has a two-step registration process:
-1. **User Registration** - Creates a User account (buyer or farmer role)
-2. **Profile Creation** - Creates Buyer or Farm profiles (required for full functionality)
+Farmers and buyers can now self-register through their respective login pages. All new registrations require admin approval before users can access the platform.
 
 ## Registration Flow
 
-### Step 1: User Registration
+### 1. Farmer Registration
 
-**Endpoint:** `POST /api/v1/auth/register`
+**Location**: Farmer App Login Page
 
-**Request Body:**
+**Steps**:
+1. Navigate to the Farmer App login page
+2. Click **"Don't have an account? Register"** button
+3. Fill in registration form:
+   - Full Name (required)
+   - Phone Number (required) - Must start with +263 or 0
+   - Email (optional)
+   - Password (required) - Minimum 6 characters
+   - Confirm Password (required)
+4. Click **"Register"** button
+5. Wait for success message: "Registration successful! Please login."
+6. Account is created with **PENDING** status
+7. User cannot login until approved by admin
+
+### 2. Buyer Registration
+
+**Location**: Buyer Portal Login Page
+
+**Steps**:
+1. Navigate to the Buyer Portal login page
+2. Click **"Don't have an account? Register"** button
+3. Fill in registration form:
+   - Full Name (required)
+   - Phone Number (required) - Must start with +263 or 0
+   - Email (optional)
+   - Password (required) - Minimum 6 characters
+   - Confirm Password (required)
+4. Click **"Register"** button
+5. Success message: "Registration successful! Your account is pending approval. You will be notified once approved."
+6. Account is created with **PENDING** status
+7. User cannot login until approved by admin
+
+## Admin Approval Process
+
+### Reviewing Registrations
+
+1. **Access KYC Queue**
+   - Log in to Admin Console
+   - Navigate to **KYC Queue** from sidebar
+
+2. **View Pending Registrations**
+   - All pending farmer and buyer registrations appear in the table
+   - Information displayed:
+     - Name
+     - Phone
+     - Email
+     - Role (FARMER or BUYER)
+     - Submission date
+     - Status (PENDING)
+
+3. **Approve or Reject**
+   - Click **"Approve"** button to approve the registration
+   - Click **"Reject"** button to reject the registration
+   - Optionally add notes explaining the decision
+   - Click **"Approve"** or **"Reject"** to confirm
+
+4. **After Approval**
+   - User status changes to **ACTIVE**
+   - User can now login with their credentials
+   - User receives notification (if notification system is enabled)
+
+5. **After Rejection**
+   - User status changes to **DEACTIVATED**
+   - User cannot login
+   - Notes explain why the registration was rejected
+
+## Registration Validation
+
+### Phone Number Format
+- Must start with `+263` (international) or `0` (local)
+- Examples:
+  - ✅ `+263771234567`
+  - ✅ `0771234567`
+  - ❌ `771234567` (missing prefix)
+
+### Password Requirements
+- Minimum 6 characters
+- No special character requirements
+- Must match confirmation password
+
+### Email
+- Optional for both farmers and buyers
+- Must be valid email format if provided
+- Cannot be duplicate (each email must be unique)
+
+### Phone Number
+- Required for both farmers and buyers
+- Cannot be duplicate (each phone must be unique)
+- Used as primary login credential
+
+## API Endpoints
+
+### Registration Endpoint
+- **URL**: `POST /api/v1/auth/register`
+- **Body**:
 ```json
 {
-  "name": "John Doe",
+  "name": "John Farmer",
   "phone": "+263771234567",
   "email": "john@example.com",
-  "password": "password123",
-  "role": "BUYER"  // or "FARMER"
+  "password": "securepass123",
+  "role": "FARMER"  // or "BUYER"
 }
 ```
+- **Response**: User object with PENDING status
 
-**Response:**
-- Creates a User record with status `PENDING`
-- User can login but has limited functionality until profile is created
-
-### Step 2: Profile Creation
-
-#### For Buyers
-
-**Option A: Self-Registration (Buyer Portal)**
-- Endpoint: `POST /api/v1/buyers/profile`
-- Requires: Buyer authentication (logged in as buyer)
-- Buyer creates their own profile after registration
-
-**Option B: Admin Creation (Admin Console)**
-- Endpoint: `POST /api/v1/admin/buyers/{buyer_id}/create-profile`
-- Requires: Admin authentication
-- Admin creates buyer profile on behalf of buyer
-
-**Request Body:**
+### KYC Review Endpoint
+- **URL**: `POST /api/v1/admin/kyc/review`
+- **Body**:
 ```json
 {
-  "company_name": "ABC Trading Company",
-  "business_type": "Retailer",
-  "business_phone": "+263771234567",
-  "business_email": "info@abctrading.co.zw",
-  "tax_number": "TAX123456",
-  "vat_number": "VAT123456",
-  "business_registration_number": "REG123456"
+  "user_id": 123,
+  "approved": true,
+  "notes": "Verified credentials"
 }
 ```
+- **Response**: Success message
 
-#### For Farmers
+## User Experience
 
-**Farm Registration:**
-- Endpoint: `POST /api/v1/farmers/farms`
-- Requires: Farmer authentication (logged in as farmer)
-- Farmer creates their own farms
+### Registration Success
+- **Farmer App**: Alert message → "Registration successful! Please login."
+- **Buyer Portal**: Alert message → "Registration successful! Your account is pending approval. You will be notified once approved."
+- Form automatically switches to login mode
+- Phone number is pre-filled for convenience
 
-**Request Body:**
-```json
-{
-  "name": "Green Valley Farm",
-  "geohash": "kf8xyz",
-  "latitude": -17.8252,
-  "longitude": 31.0335,
-  "ward": "Ward 5",
-  "district": "Harare",
-  "province": "Harare",
-  "address_line1": "123 Farm Road",
-  "total_hectares": 10.5,
-  "farm_type": "commercial",
-  "irrigation_available": "drip"
-}
-```
+### Login Attempt Before Approval
+- Error message: "Incorrect username or password" (generic for security)
+- User cannot access the platform until approved
 
-## Admin Console Management
+### After Approval
+- User can login with their phone number and password
+- Full access to their respective portal (Farmer App or Buyer Portal)
 
-### Viewing Buyers and Farmers
+## Admin Notifications
 
-**Buyers:**
-- Navigate to **Buyers** page in Admin Console
-- Shows all buyers with:
-  - Name, Phone, Email
-  - Company Name (if profile exists)
-  - Total Orders, Total Spent
-  - Status (ACTIVE, PENDING, SUSPENDED)
-  - Verification Status
+When a new registration is submitted:
+- Count appears in KYC Queue badge/counter
+- Admin can review immediately
+- No automatic notifications (manual check required)
 
-**Farmers:**
-- Navigate to **Farmers** page in Admin Console
-- Shows all farmers with:
-  - Name, Phone, Email
-  - Farms Count
-  - Total Production (kg)
-  - Total Earnings (USD)
-  - Status (ACTIVE, PENDING, SUSPENDED)
-  - Verification Status
+## Security Considerations
 
-### Creating Buyer Profiles (Admin)
-
-1. Go to **Buyers** page
-2. Find buyer without company name (no profile)
-3. Click **⋮** menu → **Create Profile**
-4. Fill in company details:
-   - Company Name (required)
-   - Business Type
-   - Business Phone/Email
-   - Tax/VAT numbers (optional)
-5. Click **Create Profile**
-
-### Viewing Farmer Farms (Admin)
-
-1. Go to **Farmers** page
-2. Click **View** on a farmer
-3. See all farms registered by that farmer:
-   - Farm Name
-   - Location (District, Province)
-   - Area (hectares)
-   - Verification Status
-
-## API Endpoints Summary
-
-### Authentication
-- `POST /api/v1/auth/register` - Register new user (buyer or farmer)
-- `POST /api/v1/auth/login` - Login user
-
-### Buyer Endpoints
-- `POST /api/v1/buyers/profile` - Create buyer profile (self-service)
-- `GET /api/v1/buyers/profile` - Get buyer profile
-- `GET /api/v1/buyers/dashboard/stats` - Get buyer dashboard stats
-- `GET /api/v1/buyers/orders/recent` - Get recent orders
-
-### Farmer Endpoints
-- `POST /api/v1/farmers/farms` - Create farm
-- `GET /api/v1/farmers/farms` - List farms (farmer-specific)
-- `POST /api/v1/farmers/production-plans` - Create production plan
-- `GET /api/v1/farmers/production-plans` - List production plans (farmer-specific)
-- `POST /api/v1/farmers/lots` - Create lot
-- `GET /api/v1/farmers/lots` - List lots (farmer-specific)
-- `GET /api/v1/farmers/dashboard/stats` - Get farmer dashboard stats
-
-### Admin Endpoints
-- `GET /api/v1/admin/buyers` - List all buyers
-- `GET /api/v1/admin/buyers/{buyer_id}` - Get buyer details
-- `POST /api/v1/admin/buyers/{buyer_id}/create-profile` - Create buyer profile (admin)
-- `POST /api/v1/admin/buyers/{buyer_id}/suspend` - Suspend buyer
-- `POST /api/v1/admin/buyers/{buyer_id}/activate` - Activate buyer
-- `GET /api/v1/admin/farmers` - List all farmers
-- `GET /api/v1/admin/farmers/{farmer_id}` - Get farmer details
-- `GET /api/v1/admin/farmers/{farmer_id}/farms` - Get farmer farms
-- `POST /api/v1/admin/farmers/{farmer_id}/suspend` - Suspend farmer
-- `POST /api/v1/admin/farmers/{farmer_id}/activate` - Activate farmer
-
-## Important Notes
-
-1. **User Registration** creates a User record but NOT a Buyer/Farm profile
-2. **Buyer Profile** must be created separately (either by buyer or admin)
-3. **Farms** are created by farmers themselves after registration
-4. **Admin Console** shows all users, but profiles may not exist yet
-5. **Dashboard stats** require profiles to exist (buyer profile for buyers, farms for farmers)
-
-## Workflow Examples
-
-### Complete Buyer Registration
-1. Buyer registers via `/auth/register` with role `BUYER`
-2. Buyer logs in via `/auth/login`
-3. Buyer creates profile via `/buyers/profile` OR
-4. Admin creates profile via `/admin/buyers/{id}/create-profile`
-5. Buyer can now see dashboard stats and place orders
-
-### Complete Farmer Registration
-1. Farmer registers via `/auth/register` with role `FARMER`
-2. Farmer logs in via `/auth/login`
-3. Farmer creates farm via `/farmers/farms`
-4. Farmer creates production plans via `/farmers/production-plans`
-5. Farmer can now see dashboard stats and create lots
+1. **Password Hashing**: All passwords are hashed using bcrypt before storage
+2. **Phone Validation**: Phone numbers are validated on both frontend and backend
+3. **Duplicate Prevention**: System prevents duplicate phone numbers and emails
+4. **Status-based Access**: Only ACTIVE users can login
+5. **Admin Review**: Manual review prevents automated spam registrations
 
 ## Troubleshooting
 
-**Issue:** Buyer dashboard shows "Buyer profile not found"
-- **Solution:** Create buyer profile via `/buyers/profile` or admin console
+### User Cannot Register
+- **Phone already exists**: "User with this phone number or email already exists"
+- **Invalid phone format**: "Phone number must start with +263 or 0"
+- **Password too short**: "Password must be at least 6 characters"
+- **Passwords don't match**: "Passwords do not match"
 
-**Issue:** Farmer dashboard shows 0 farms
-- **Solution:** Farmer needs to create farms via `/farmers/farms`
+### User Cannot Login After Registration
+- Check KYC Queue in Admin Console
+- Verify user status is ACTIVE, not PENDING
+- Confirm user is using correct phone number and password
 
-**Issue:** Admin console shows buyers but no company names
-- **Solution:** Those buyers don't have profiles yet. Use "Create Profile" button.
+### Admin Cannot Approve
+- Check user exists in database
+- Verify admin has staff permissions
+- Check backend logs for errors
 
-**Issue:** Admin console shows farmers but no farms
-- **Solution:** Those farmers haven't registered farms yet. Farms are created by farmers themselves.
+## Benefits
 
+### For Users
+- ✅ Self-service registration
+- ✅ No need to contact sales representative
+- ✅ Fast account creation
+- ✅ Clear feedback on registration status
+
+### For Admins
+- ✅ Centralized approval process
+- ✅ Review all registrations in one place
+- ✅ Add notes for record keeping
+- ✅ Prevent fraudulent registrations
+- ✅ Control platform access
+
+## Next Steps
+
+After registration and approval:
+
+### Farmers
+1. Login to Farmer App
+2. Register farms (location, size, type)
+3. Create production plans
+4. List crops for sale
+5. Manage orders
+
+### Buyers
+1. Login to Buyer Portal
+2. Complete buyer profile (optional)
+3. Browse available crops
+4. Place orders
+5. Track deliveries
+6. Manage inventory
+
+---
+
+**Note**: This registration system ensures quality control by requiring manual admin approval for all new accounts, preventing spam and ensuring legitimate users on the platform.

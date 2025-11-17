@@ -27,6 +27,8 @@ app = FastAPI(
 )
 
 # CORS middleware - Allow admin console and buyer portal
+# IMPORTANT: When allow_credentials=True, browsers do NOT allow wildcard origins ("*")
+# We must always use explicit origin lists, even in DEBUG mode
 allowed_origins = [
     "http://localhost:3000",  # Buyer Portal
     "http://localhost:3001",  # Admin Console
@@ -40,13 +42,19 @@ allowed_origins = [
     "https://api.mundamarket.co.zw",  # Backend (Custom Domain) - when DNS is configured
 ]
 
+# Log CORS configuration on startup for debugging
+logger.info(f"CORS configured with {len(allowed_origins)} allowed origins")
+if settings.DEBUG:
+    logger.info(f"DEBUG mode: CORS origins = {allowed_origins}")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"] if settings.DEBUG else allowed_origins,
+    allow_origins=allowed_origins,  # Always use explicit list (never "*" with credentials)
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
     expose_headers=["*"],
+    max_age=3600,  # Cache preflight requests for 1 hour
 )
 
 # Trusted hosts middleware (security)
