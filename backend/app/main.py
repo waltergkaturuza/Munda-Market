@@ -47,10 +47,24 @@ logger.info(f"CORS configured with {len(allowed_origins)} allowed origins")
 if settings.DEBUG:
     logger.info(f"DEBUG mode: CORS origins = {allowed_origins}")
 
+# Custom origin validator function for CORS
+def is_allowed_origin(origin: str) -> bool:
+    """Check if origin is allowed (explicit list or Vercel preview)"""
+    if not origin:
+        return False
+    # Check explicit list
+    if origin in allowed_origins:
+        return True
+    # Allow all Vercel preview deployments (*.vercel.app)
+    if origin.endswith(".vercel.app"):
+        logger.info(f"Allowing Vercel preview origin: {origin}")
+        return True
+    return False
+
 app.add_middleware(
     CORSMiddleware,
+    allow_origin_regex=r"https://.*\.vercel\.app",  # Allow all Vercel preview deployments
     allow_origins=allowed_origins,  # Explicit list of production URLs
-    allow_origin_regex=r"https://.*\.vercel\.app",  # Allow all Vercel preview deployments (*.vercel.app)
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
