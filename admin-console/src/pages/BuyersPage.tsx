@@ -1158,7 +1158,7 @@ export default function BuyersPage() {
                               <Checkbox
                                 checked={selected}
                                 sx={{ mr: 1 }}
-                                onClick={(e) => e.stopPropagation()}
+                                disableRipple
                               />
                               <ListItemText primary={option} />
                             </li>
@@ -1188,7 +1188,7 @@ export default function BuyersPage() {
                               <Checkbox
                                 checked={selected}
                                 sx={{ mr: 1 }}
-                                onClick={(e) => e.stopPropagation()}
+                                disableRipple
                               />
                               <ListItemText primary={option.crop_name} />
                             </li>
