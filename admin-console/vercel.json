@@ -20,7 +20,7 @@
     }
   ],
   "env": {
-    "VITE_API_BASE_URL": "https://api.mundamarket.co.zw"
+    "VITE_API_BASE_URL": "https://munda-market.onrender.com"
   }
 }
 

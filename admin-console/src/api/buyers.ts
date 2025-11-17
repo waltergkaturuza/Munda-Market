@@ -80,7 +80,10 @@ export const buyersApi = {
   },
 
   create: async (data: CreateBuyerRequest): Promise<void> => {
-    await apiClient.post('/admin/buyers/create', data);
+    console.log('Creating buyer with data:', { ...data, password: '***' }); // Log without password
+    const response = await apiClient.post('/admin/buyers/create', data);
+    console.log('Buyer created successfully:', response.data);
+    return response.data;
   },
 
   getById: async (id: number): Promise<BuyerDetail> => {

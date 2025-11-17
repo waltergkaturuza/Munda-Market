@@ -151,6 +151,8 @@ export default function BuyersPage() {
       queryClient.invalidateQueries({ queryKey: ['buyers'] });
       setCreateBuyerDialogOpen(false);
       setCreateBuyerFormTab(0);
+      console.log('Buyer created successfully');
+      // Reset form after successful creation
       setCreateBuyerForm({
         name: '',
         phone: '',
@@ -188,6 +190,10 @@ export default function BuyersPage() {
         preferred_crops: [],
         preferred_districts: [],
       });
+    },
+    onError: (error: any) => {
+      console.error('Error creating buyer:', error);
+      // Error is handled by the API client interceptor
     },
   });
 
