@@ -35,7 +35,7 @@ export default function LoginPage() {
     try {
       const response = await authApi.login({ username, password });
       setAuth(response.access_token, response.user);
-      navigate(ROUTES.DASHBOARD);
+      navigate(ROUTES.HOME);
     } catch (err: any) {
       setError(err.message || 'Login failed. Please check your credentials.');
     } finally {
