@@ -32,7 +32,7 @@ import {
   ListItemText,
   Autocomplete,
 } from '@mui/material';
-import { MoreVert, Visibility, Block, CheckCircle, Phone, Email, Business, Add } from '@mui/icons-material';
+import { MoreVert, Visibility, Block, CheckCircle, Phone, Email, Business, Add, ArrowBack, ArrowForward } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { buyersApi, Buyer, CreateBuyerProfileRequest, CreateBuyerRequest } from '@/api/buyers';
 import { inventoryApi } from '@/api/inventory';
@@ -1053,16 +1053,28 @@ export default function BuyersPage() {
             )}
           </Box>
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ justifyContent: 'space-between', px: 3, pb: 2 }}>
           <Button onClick={() => setCreateBuyerDialogOpen(false)}>Cancel</Button>
-          {createBuyerFormTab > 0 && (
-            <Button onClick={() => setCreateBuyerFormTab(createBuyerFormTab - 1)}>Previous</Button>
-          )}
-          {createBuyerFormTab < 3 && (
-            <Button onClick={() => setCreateBuyerFormTab(createBuyerFormTab + 1)} variant="outlined">
+          
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              onClick={() => setCreateBuyerFormTab(createBuyerFormTab - 1)}
+              disabled={createBuyerFormTab === 0}
+              startIcon={<ArrowBack />}
+              variant="outlined"
+            >
+              Previous
+            </Button>
+            <Button
+              onClick={() => setCreateBuyerFormTab(createBuyerFormTab + 1)}
+              disabled={createBuyerFormTab === 3}
+              endIcon={<ArrowForward />}
+              variant="outlined"
+            >
               Next
             </Button>
-          )}
+          </Box>
+
           <Button
             onClick={() => {
               // Clean up empty strings and send all fields

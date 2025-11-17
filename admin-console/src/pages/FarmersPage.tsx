@@ -33,7 +33,7 @@ import {
   ListItemText,
   Autocomplete,
 } from '@mui/material';
-import { MoreVert, Visibility, Block, CheckCircle, Phone, Email, Add, Refresh, Business } from '@mui/icons-material';
+import { MoreVert, Visibility, Block, CheckCircle, Phone, Email, Add, Refresh, Business, ArrowBack, ArrowForward } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { farmersApi, Farmer, CreateFarmRequest, CreateFarmerRequest } from '@/api/farmers';
 import { inventoryApi } from '@/api/inventory';
@@ -958,16 +958,28 @@ export default function FarmersPage() {
             )}
           </Box>
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ justifyContent: 'space-between', px: 3, pb: 2 }}>
           <Button onClick={() => setCreateFarmerDialogOpen(false)}>Cancel</Button>
-          {createFarmerFormTab > 0 && (
-            <Button onClick={() => setCreateFarmerFormTab(createFarmerFormTab - 1)}>Previous</Button>
-          )}
-          {createFarmerFormTab < 3 && (
-            <Button onClick={() => setCreateFarmerFormTab(createFarmerFormTab + 1)} variant="outlined">
+          
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              onClick={() => setCreateFarmerFormTab(createFarmerFormTab - 1)}
+              disabled={createFarmerFormTab === 0}
+              startIcon={<ArrowBack />}
+              variant="outlined"
+            >
+              Previous
+            </Button>
+            <Button
+              onClick={() => setCreateFarmerFormTab(createFarmerFormTab + 1)}
+              disabled={createFarmerFormTab === 3}
+              endIcon={<ArrowForward />}
+              variant="outlined"
+            >
               Next
             </Button>
-          )}
+          </Box>
+
           <Button
             onClick={() => {
               // Clean up empty strings and send all fields
