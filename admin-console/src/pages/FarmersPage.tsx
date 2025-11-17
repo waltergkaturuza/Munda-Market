@@ -32,12 +32,16 @@ import {
   Checkbox,
   ListItemText,
   Autocomplete,
+  FormControl,
+  InputLabel,
+  Select,
 } from '@mui/material';
 import { MoreVert, Visibility, Block, CheckCircle, Phone, Email, Add, Refresh, Business, ArrowBack, ArrowForward } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { farmersApi, Farmer, CreateFarmRequest, CreateFarmerRequest } from '@/api/farmers';
 import { inventoryApi } from '@/api/inventory';
 import { Crop } from '@/types';
+import { ZIMBABWE_PROVINCES, ZIMBABWE_DISTRICTS, CROP_CATEGORIES, CROP_TYPES } from '@/constants/zimbabwe';
 
 const statusColors: Record<string, 'default' | 'success' | 'warning' | 'error'> = {
   PENDING: 'warning',
@@ -57,6 +61,9 @@ export default function FarmersPage() {
   const [anchorEl, setAnchorEl] = useState<{ [key: number]: HTMLElement | null }>({});
   const [createFarmerDialogOpen, setCreateFarmerDialogOpen] = useState(false);
   const [createFarmerFormTab, setCreateFarmerFormTab] = useState(0);
+  const [selectedHomeProvince, setSelectedHomeProvince] = useState<string>('');
+  const [selectedFarmProvince, setSelectedFarmProvince] = useState<string>('');
+  const [selectedCropCategory, setSelectedCropCategory] = useState<string>('');
   const [createFarmerForm, setCreateFarmerForm] = useState<CreateFarmerRequest>({
     name: '',
     phone: '',
@@ -156,12 +163,39 @@ export default function FarmersPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['farmers'] });
       setCreateFarmerDialogOpen(false);
+      setCreateFarmerFormTab(0);
+      setSelectedHomeProvince('');
+      setSelectedFarmProvince('');
+      setSelectedCropCategory('');
       setCreateFarmerForm({
         name: '',
         phone: '',
         email: '',
         password: '',
         auto_activate: true,
+        gov_id: '',
+        bio: '',
+        home_address_line1: '',
+        home_address_line2: '',
+        home_district: '',
+        home_province: '',
+        home_postal_code: '',
+        farm_name: '',
+        farm_latitude: -17.8292,
+        farm_longitude: 31.0522,
+        farm_geohash: '',
+        farm_district: '',
+        farm_province: '',
+        farm_ward: '',
+        farm_address_line1: '',
+        farm_address_line2: '',
+        farm_postal_code: '',
+        farm_total_hectares: undefined,
+        farm_type: '',
+        irrigation_available: '',
+        preferred_crops: [],
+        association_name: '',
+        association_membership_id: '',
       });
     },
   });
@@ -635,7 +669,13 @@ export default function FarmersPage() {
       {/* Create Farmer Dialog */}
       <Dialog
         open={createFarmerDialogOpen}
-        onClose={() => setCreateFarmerDialogOpen(false)}
+        onClose={() => {
+          setCreateFarmerDialogOpen(false);
+          setCreateFarmerFormTab(0);
+          setSelectedHomeProvince('');
+          setSelectedFarmProvince('');
+          setSelectedCropCategory('');
+        }}
         maxWidth="lg"
         fullWidth
       >
@@ -751,20 +791,40 @@ export default function FarmersPage() {
                   />
                 </Grid>
                 <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    label="District"
-                    value={createFarmerForm.home_district}
-                    onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, home_district: e.target.value })}
-                  />
+                  <FormControl fullWidth>
+                    <InputLabel>Province</InputLabel>
+                    <Select
+                      value={selectedHomeProvince}
+                      label="Province"
+                      onChange={(e) => {
+                        const province = e.target.value;
+                        setSelectedHomeProvince(province);
+                        setCreateFarmerForm({ ...createFarmerForm, home_province: province, home_district: '' });
+                      }}
+                    >
+                      {ZIMBABWE_PROVINCES.map((province) => (
+                        <MenuItem key={province} value={province}>
+                          {province}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
                 </Grid>
                 <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    label="Province"
-                    value={createFarmerForm.home_province}
-                    onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, home_province: e.target.value })}
-                  />
+                  <FormControl fullWidth disabled={!selectedHomeProvince}>
+                    <InputLabel>District</InputLabel>
+                    <Select
+                      value={createFarmerForm.home_district}
+                      label="District"
+                      onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, home_district: e.target.value })}
+                    >
+                      {selectedHomeProvince && ZIMBABWE_DISTRICTS[selectedHomeProvince]?.map((district) => (
+                        <MenuItem key={district} value={district}>
+                          {district}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
                 </Grid>
                 <Grid item xs={12} md={4}>
                   <TextField
@@ -832,20 +892,40 @@ export default function FarmersPage() {
                   />
                 </Grid>
                 <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    label="Farm District"
-                    value={createFarmerForm.farm_district}
-                    onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, farm_district: e.target.value })}
-                  />
+                  <FormControl fullWidth>
+                    <InputLabel>Farm Province</InputLabel>
+                    <Select
+                      value={selectedFarmProvince}
+                      label="Farm Province"
+                      onChange={(e) => {
+                        const province = e.target.value;
+                        setSelectedFarmProvince(province);
+                        setCreateFarmerForm({ ...createFarmerForm, farm_province: province, farm_district: '' });
+                      }}
+                    >
+                      {ZIMBABWE_PROVINCES.map((province) => (
+                        <MenuItem key={province} value={province}>
+                          {province}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
                 </Grid>
                 <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    label="Farm Province"
-                    value={createFarmerForm.farm_province}
-                    onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, farm_province: e.target.value })}
-                  />
+                  <FormControl fullWidth disabled={!selectedFarmProvince}>
+                    <InputLabel>Farm District</InputLabel>
+                    <Select
+                      value={createFarmerForm.farm_district}
+                      label="Farm District"
+                      onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, farm_district: e.target.value })}
+                    >
+                      {selectedFarmProvince && ZIMBABWE_DISTRICTS[selectedFarmProvince]?.map((district) => (
+                        <MenuItem key={district} value={district}>
+                          {district}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
                 </Grid>
                 <Grid item xs={12} md={4}>
                   <TextField
@@ -908,29 +988,101 @@ export default function FarmersPage() {
                   <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                     Crop Preferences
                   </Typography>
-                  {crops && (
-                    <Autocomplete
-                      multiple
-                      options={crops}
-                      getOptionLabel={(option) => option.crop_name}
-                      value={crops.filter((crop) => createFarmerForm.preferred_crops?.includes(crop.crop_id))}
-                      onChange={(_, newValue) => {
-                        setCreateFarmerForm({
-                          ...createFarmerForm,
-                          preferred_crops: newValue.map((c) => c.crop_id),
-                        });
-                      }}
-                      renderInput={(params) => (
-                        <TextField {...params} label="Select Preferred Crops" placeholder="Choose crops..." />
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={4}>
+                      <FormControl fullWidth>
+                        <InputLabel>Crop Category</InputLabel>
+                        <Select
+                          value={selectedCropCategory}
+                          label="Crop Category"
+                          onChange={(e) => setSelectedCropCategory(e.target.value)}
+                        >
+                          {CROP_CATEGORIES.map((category) => (
+                            <MenuItem key={category} value={category}>
+                              {category}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid item xs={12} md={8}>
+                      {selectedCropCategory && (
+                        <Autocomplete
+                          multiple
+                          options={CROP_TYPES[selectedCropCategory] || []}
+                          getOptionLabel={(option) => option}
+                          value={(() => {
+                            // Get currently selected crops from this category
+                            if (!crops) return [];
+                            const selectedCropNames = crops
+                              .filter((c) => createFarmerForm.preferred_crops?.includes(c.crop_id))
+                              .map((c) => c.crop_name);
+                            return CROP_TYPES[selectedCropCategory]?.filter((name) => 
+                              selectedCropNames.some((selected) => selected.toLowerCase() === name.toLowerCase())
+                            ) || [];
+                          })()}
+                          onChange={(_, newValue) => {
+                            // Map crop names to crop IDs if available in API
+                            if (crops) {
+                              const selectedCropIds = newValue
+                                .map((cropName) => crops.find((c) => c.crop_name.toLowerCase() === cropName.toLowerCase())?.crop_id)
+                                .filter((id): id is number => id !== undefined);
+                              
+                              // Get existing selections from other categories
+                              const currentCategoryCropIds = CROP_TYPES[selectedCropCategory]
+                                ?.map((name) => crops.find((c) => c.crop_name.toLowerCase() === name.toLowerCase())?.crop_id)
+                                .filter((id): id is number => id !== undefined) || [];
+                              
+                              // Remove old selections from this category and add new ones
+                              const otherCategoryIds = (createFarmerForm.preferred_crops || []).filter(
+                                (id) => !currentCategoryCropIds.includes(id)
+                              );
+                              const combinedIds = [...new Set([...otherCategoryIds, ...selectedCropIds])];
+                              
+                              setCreateFarmerForm({
+                                ...createFarmerForm,
+                                preferred_crops: combinedIds,
+                              });
+                            }
+                          }}
+                          renderInput={(params) => (
+                            <TextField {...params} label={`Select ${selectedCropCategory}`} placeholder="Choose crops..." />
+                          )}
+                          renderOption={(props, option, { selected }) => (
+                            <li {...props}>
+                              <Checkbox checked={selected} />
+                              <ListItemText primary={option} />
+                            </li>
+                          )}
+                        />
                       )}
-                      renderOption={(props, option, { selected }) => (
-                        <li {...props}>
-                          <Checkbox checked={selected} />
-                          <ListItemText primary={option.crop_name} />
-                        </li>
+                    </Grid>
+                    <Grid item xs={12}>
+                      {crops && (
+                        <Autocomplete
+                          multiple
+                          options={crops}
+                          getOptionLabel={(option) => option.crop_name}
+                          value={crops.filter((crop) => createFarmerForm.preferred_crops?.includes(crop.crop_id))}
+                          onChange={(_, newValue) => {
+                            setCreateFarmerForm({
+                              ...createFarmerForm,
+                              preferred_crops: newValue.map((c) => c.crop_id),
+                            });
+                          }}
+                          renderInput={(params) => (
+                            <TextField {...params} label="Or Select from All Available Crops" placeholder="Choose crops..." />
+                          )}
+                          renderOption={(props, option, { selected }) => (
+                            <li {...props}>
+                              <Checkbox checked={selected} />
+                              <ListItemText primary={option.crop_name} />
+                            </li>
+                          )}
+                        />
                       )}
-                    />
-                  )}
+                    </Grid>
+                  </Grid>
                 </Grid>
                 <Grid item xs={12}>
                   <Divider sx={{ my: 2 }} />

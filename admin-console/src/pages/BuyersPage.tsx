@@ -31,12 +31,16 @@ import {
   Checkbox,
   ListItemText,
   Autocomplete,
+  FormControl,
+  InputLabel,
+  Select,
 } from '@mui/material';
 import { MoreVert, Visibility, Block, CheckCircle, Phone, Email, Business, Add, ArrowBack, ArrowForward } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { buyersApi, Buyer, CreateBuyerProfileRequest, CreateBuyerRequest } from '@/api/buyers';
 import { inventoryApi } from '@/api/inventory';
 import { Crop } from '@/types';
+import { ZIMBABWE_PROVINCES, ZIMBABWE_DISTRICTS, CROP_CATEGORIES, CROP_TYPES } from '@/constants/zimbabwe';
 
 const statusColors: Record<string, 'default' | 'success' | 'warning' | 'error'> = {
   PENDING: 'warning',
@@ -56,6 +60,10 @@ export default function BuyersPage() {
   const [anchorEl, setAnchorEl] = useState<{ [key: number]: HTMLElement | null }>({});
   const [createBuyerDialogOpen, setCreateBuyerDialogOpen] = useState(false);
   const [createBuyerFormTab, setCreateBuyerFormTab] = useState(0);
+  const [selectedBusinessProvince, setSelectedBusinessProvince] = useState<string>('');
+  const [selectedBillingProvince, setSelectedBillingProvince] = useState<string>('');
+  const [selectedDeliveryProvince, setSelectedDeliveryProvince] = useState<string>('');
+  const [selectedCropCategory, setSelectedCropCategory] = useState<string>('');
   const [createBuyerForm, setCreateBuyerForm] = useState<CreateBuyerRequest>({
     name: '',
     phone: '',
@@ -151,6 +159,10 @@ export default function BuyersPage() {
       queryClient.invalidateQueries({ queryKey: ['buyers'] });
       setCreateBuyerDialogOpen(false);
       setCreateBuyerFormTab(0);
+      setSelectedBusinessProvince('');
+      setSelectedBillingProvince('');
+      setSelectedDeliveryProvince('');
+      setSelectedCropCategory('');
       console.log('Buyer created successfully');
       // Reset form after successful creation
       setCreateBuyerForm({
@@ -254,13 +266,13 @@ export default function BuyersPage() {
   return (
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Box>
-          <Typography variant="h4" gutterBottom fontWeight="bold">
-            Buyers Management
-          </Typography>
+    <Box>
+      <Typography variant="h4" gutterBottom fontWeight="bold">
+        Buyers Management
+      </Typography>
           <Typography variant="body1" color="text.secondary">
-            Manage buyer accounts, purchase history, and spending
-          </Typography>
+        Manage buyer accounts, purchase history, and spending
+      </Typography>
         </Box>
         <Button
           variant="contained"
@@ -660,7 +672,14 @@ export default function BuyersPage() {
       {/* Create Buyer Dialog */}
       <Dialog
         open={createBuyerDialogOpen}
-        onClose={() => setCreateBuyerDialogOpen(false)}
+        onClose={() => {
+          setCreateBuyerDialogOpen(false);
+          setCreateBuyerFormTab(0);
+          setSelectedBusinessProvince('');
+          setSelectedBillingProvince('');
+          setSelectedDeliveryProvince('');
+          setSelectedCropCategory('');
+        }}
         maxWidth="lg"
         fullWidth
       >
@@ -678,33 +697,33 @@ export default function BuyersPage() {
             {createBuyerFormTab === 0 && (
               <Grid container spacing={2}>
                 <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Full Name"
-                    value={createBuyerForm.name}
-                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, name: e.target.value })}
-                    required
-                  />
+            <TextField
+              fullWidth
+              label="Full Name"
+              value={createBuyerForm.name}
+              onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, name: e.target.value })}
+              required
+            />
                 </Grid>
                 <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Phone Number"
-                    value={createBuyerForm.phone}
-                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, phone: e.target.value })}
-                    required
-                    placeholder="+263771234567"
-                    helperText="Must start with +263 or 0"
-                  />
+            <TextField
+              fullWidth
+              label="Phone Number"
+              value={createBuyerForm.phone}
+              onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, phone: e.target.value })}
+              required
+              placeholder="+263771234567"
+              helperText="Must start with +263 or 0"
+            />
                 </Grid>
                 <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Email (Optional)"
-                    type="email"
-                    value={createBuyerForm.email}
-                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, email: e.target.value })}
-                  />
+            <TextField
+              fullWidth
+              label="Email (Optional)"
+              type="email"
+              value={createBuyerForm.email}
+              onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, email: e.target.value })}
+            />
                 </Grid>
                 <Grid item xs={12} md={6}>
                   <TextField
@@ -716,15 +735,15 @@ export default function BuyersPage() {
                   />
                 </Grid>
                 <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Password"
-                    type="password"
-                    value={createBuyerForm.password}
-                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, password: e.target.value })}
-                    required
-                    helperText="Minimum 6 characters"
-                  />
+            <TextField
+              fullWidth
+              label="Password"
+              type="password"
+              value={createBuyerForm.password}
+              onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, password: e.target.value })}
+              required
+              helperText="Minimum 6 characters"
+            />
                 </Grid>
                 <Grid item xs={12} md={6}>
                   <FormControlLabel
@@ -738,8 +757,8 @@ export default function BuyersPage() {
                   />
                 </Grid>
                 <Grid item xs={12}>
-                  <TextField
-                    fullWidth
+            <TextField
+              fullWidth
                     label="Bio / Background Information (Optional)"
                     multiline
                     rows={4}
@@ -763,19 +782,19 @@ export default function BuyersPage() {
                   <TextField
                     fullWidth
                     label="Company Name"
-                    value={createBuyerForm.company_name}
-                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, company_name: e.target.value })}
-                    helperText="If provided, buyer profile will be created automatically"
-                  />
+              value={createBuyerForm.company_name}
+              onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, company_name: e.target.value })}
+              helperText="If provided, buyer profile will be created automatically"
+            />
                 </Grid>
                 <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
+            <TextField
+              fullWidth
                     label="Business Type"
-                    value={createBuyerForm.business_type}
-                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, business_type: e.target.value })}
-                    placeholder="e.g., Restaurant, Retailer, Wholesaler"
-                  />
+              value={createBuyerForm.business_type}
+              onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, business_type: e.target.value })}
+              placeholder="e.g., Restaurant, Retailer, Wholesaler"
+            />
                 </Grid>
                 <Grid item xs={12} md={6}>
                   <TextField
@@ -870,20 +889,40 @@ export default function BuyersPage() {
                   />
                 </Grid>
                 <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    label="District"
-                    value={createBuyerForm.business_district}
-                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, business_district: e.target.value })}
-                  />
+                  <FormControl fullWidth>
+                    <InputLabel>Province</InputLabel>
+                    <Select
+                      value={selectedBusinessProvince}
+                      label="Province"
+                      onChange={(e) => {
+                        const province = e.target.value;
+                        setSelectedBusinessProvince(province);
+                        setCreateBuyerForm({ ...createBuyerForm, business_province: province, business_district: '' });
+                      }}
+                    >
+                      {ZIMBABWE_PROVINCES.map((province) => (
+                        <MenuItem key={province} value={province}>
+                          {province}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
                 </Grid>
                 <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    label="Province"
-                    value={createBuyerForm.business_province}
-                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, business_province: e.target.value })}
-                  />
+                  <FormControl fullWidth disabled={!selectedBusinessProvince}>
+                    <InputLabel>District</InputLabel>
+                    <Select
+                      value={createBuyerForm.business_district}
+                      label="District"
+                      onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, business_district: e.target.value })}
+                    >
+                      {selectedBusinessProvince && ZIMBABWE_DISTRICTS[selectedBusinessProvince]?.map((district) => (
+                        <MenuItem key={district} value={district}>
+                          {district}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
                 </Grid>
                 <Grid item xs={12} md={4}>
                   <TextField
@@ -925,20 +964,40 @@ export default function BuyersPage() {
                   />
                 </Grid>
                 <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    label="Billing District"
-                    value={createBuyerForm.billing_district}
-                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, billing_district: e.target.value })}
-                  />
+                  <FormControl fullWidth>
+                    <InputLabel>Billing Province</InputLabel>
+                    <Select
+                      value={selectedBillingProvince}
+                      label="Billing Province"
+                      onChange={(e) => {
+                        const province = e.target.value;
+                        setSelectedBillingProvince(province);
+                        setCreateBuyerForm({ ...createBuyerForm, billing_province: province, billing_district: '' });
+                      }}
+                    >
+                      {ZIMBABWE_PROVINCES.map((province) => (
+                        <MenuItem key={province} value={province}>
+                          {province}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
                 </Grid>
                 <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    label="Billing Province"
-                    value={createBuyerForm.billing_province}
-                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, billing_province: e.target.value })}
-                  />
+                  <FormControl fullWidth disabled={!selectedBillingProvince}>
+                    <InputLabel>Billing District</InputLabel>
+                    <Select
+                      value={createBuyerForm.billing_district}
+                      label="Billing District"
+                      onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, billing_district: e.target.value })}
+                    >
+                      {selectedBillingProvince && ZIMBABWE_DISTRICTS[selectedBillingProvince]?.map((district) => (
+                        <MenuItem key={district} value={district}>
+                          {district}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
                 </Grid>
                 <Grid item xs={12} md={4}>
                   <TextField
@@ -980,20 +1039,40 @@ export default function BuyersPage() {
                   />
                 </Grid>
                 <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    label="Delivery District"
-                    value={createBuyerForm.delivery_district}
-                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, delivery_district: e.target.value })}
-                  />
+                  <FormControl fullWidth>
+                    <InputLabel>Delivery Province</InputLabel>
+                    <Select
+                      value={selectedDeliveryProvince}
+                      label="Delivery Province"
+                      onChange={(e) => {
+                        const province = e.target.value;
+                        setSelectedDeliveryProvince(province);
+                        setCreateBuyerForm({ ...createBuyerForm, delivery_province: province, delivery_district: '' });
+                      }}
+                    >
+                      {ZIMBABWE_PROVINCES.map((province) => (
+                        <MenuItem key={province} value={province}>
+                          {province}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
                 </Grid>
                 <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    label="Delivery Province"
-                    value={createBuyerForm.delivery_province}
-                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, delivery_province: e.target.value })}
-                  />
+                  <FormControl fullWidth disabled={!selectedDeliveryProvince}>
+                    <InputLabel>Delivery District</InputLabel>
+                    <Select
+                      value={createBuyerForm.delivery_district}
+                      label="Delivery District"
+                      onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, delivery_district: e.target.value })}
+                    >
+                      {selectedDeliveryProvince && ZIMBABWE_DISTRICTS[selectedDeliveryProvince]?.map((district) => (
+                        <MenuItem key={district} value={district}>
+                          {district}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
                 </Grid>
                 <Grid item xs={12} md={4}>
                   <TextField
@@ -1013,46 +1092,124 @@ export default function BuyersPage() {
                   <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                     Crop Preferences
                   </Typography>
-                  {crops && (
-                    <Autocomplete
-                      multiple
-                      options={crops}
-                      getOptionLabel={(option) => option.crop_name}
-                      value={crops.filter((crop) => createBuyerForm.preferred_crops?.includes(crop.crop_id))}
-                      onChange={(_, newValue) => {
-                        setCreateBuyerForm({
-                          ...createBuyerForm,
-                          preferred_crops: newValue.map((c) => c.crop_id),
-                        });
-                      }}
-                      renderInput={(params) => (
-                        <TextField {...params} label="Select Preferred Crops" placeholder="Choose crops..." />
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={4}>
+                      <FormControl fullWidth>
+                        <InputLabel>Crop Category</InputLabel>
+                        <Select
+                          value={selectedCropCategory}
+                          label="Crop Category"
+                          onChange={(e) => setSelectedCropCategory(e.target.value)}
+                        >
+                          {CROP_CATEGORIES.map((category) => (
+                            <MenuItem key={category} value={category}>
+                              {category}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid item xs={12} md={8}>
+                      {selectedCropCategory && (
+                        <Autocomplete
+                          multiple
+                          options={CROP_TYPES[selectedCropCategory] || []}
+                          getOptionLabel={(option) => option}
+                          value={(() => {
+                            // Get currently selected crops from this category
+                            if (!crops) return [];
+                            const selectedCropNames = crops
+                              .filter((c) => createBuyerForm.preferred_crops?.includes(c.crop_id))
+                              .map((c) => c.crop_name);
+                            return CROP_TYPES[selectedCropCategory]?.filter((name) => 
+                              selectedCropNames.some((selected) => selected.toLowerCase() === name.toLowerCase())
+                            ) || [];
+                          })()}
+                          onChange={(_, newValue) => {
+                            // Map crop names to crop IDs if available in API
+                            if (crops) {
+                              const selectedCropIds = newValue
+                                .map((cropName) => crops.find((c) => c.crop_name.toLowerCase() === cropName.toLowerCase())?.crop_id)
+                                .filter((id): id is number => id !== undefined);
+                              
+                              // Get existing selections from other categories
+                              const currentCategoryCropIds = CROP_TYPES[selectedCropCategory]
+                                ?.map((name) => crops.find((c) => c.crop_name.toLowerCase() === name.toLowerCase())?.crop_id)
+                                .filter((id): id is number => id !== undefined) || [];
+                              
+                              // Remove old selections from this category and add new ones
+                              const otherCategoryIds = (createBuyerForm.preferred_crops || []).filter(
+                                (id) => !currentCategoryCropIds.includes(id)
+                              );
+                              const combinedIds = [...new Set([...otherCategoryIds, ...selectedCropIds])];
+                              
+                              setCreateBuyerForm({
+                                ...createBuyerForm,
+                                preferred_crops: combinedIds,
+                              });
+                            }
+                          }}
+                          renderInput={(params) => (
+                            <TextField {...params} label={`Select ${selectedCropCategory}`} placeholder="Choose crops..." />
+                          )}
+                          renderOption={(props, option, { selected }) => (
+                            <li {...props}>
+                              <Checkbox checked={selected} />
+                              <ListItemText primary={option} />
+                            </li>
+                          )}
+                        />
                       )}
-                      renderOption={(props, option, { selected }) => (
-                        <li {...props}>
-                          <Checkbox checked={selected} />
-                          <ListItemText primary={option.crop_name} />
-                        </li>
+                    </Grid>
+                    <Grid item xs={12}>
+                      {crops && (
+                        <Autocomplete
+                          multiple
+                          options={crops}
+                          getOptionLabel={(option) => option.crop_name}
+                          value={crops.filter((crop) => createBuyerForm.preferred_crops?.includes(crop.crop_id))}
+                          onChange={(_, newValue) => {
+                            setCreateBuyerForm({
+                              ...createBuyerForm,
+                              preferred_crops: newValue.map((c) => c.crop_id),
+                            });
+                          }}
+                          renderInput={(params) => (
+                            <TextField {...params} label="Or Select from All Available Crops" placeholder="Choose crops..." />
+                          )}
+                          renderOption={(props, option, { selected }) => (
+                            <li {...props}>
+                              <Checkbox checked={selected} />
+                              <ListItemText primary={option.crop_name} />
+                            </li>
+                          )}
+                        />
                       )}
-                    />
-                  )}
+                    </Grid>
+                  </Grid>
                 </Grid>
                 <Grid item xs={12}>
                   <Divider sx={{ my: 2 }} />
                   <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                     Preferred Source Districts (Optional)
                   </Typography>
-                  <TextField
-                    fullWidth
-                    multiline
-                    rows={3}
-                    value={createBuyerForm.preferred_districts?.join(', ') || ''}
-                    onChange={(e) => {
-                      const districts = e.target.value.split(',').map((d) => d.trim()).filter((d) => d.length > 0);
-                      setCreateBuyerForm({ ...createBuyerForm, preferred_districts: districts });
+                  <Autocomplete
+                    multiple
+                    options={Object.values(ZIMBABWE_DISTRICTS).flat()}
+                    getOptionLabel={(option) => option}
+                    value={createBuyerForm.preferred_districts || []}
+                    onChange={(_, newValue) => {
+                      setCreateBuyerForm({ ...createBuyerForm, preferred_districts: newValue });
                     }}
-                    placeholder="Enter districts separated by commas (e.g., Harare, Bulawayo, Mutare)"
-                    helperText="Districts where you prefer to source produce from"
+                    renderInput={(params) => (
+                      <TextField {...params} label="Select Preferred Districts" placeholder="Choose districts..." />
+                    )}
+                    renderOption={(props, option, { selected }) => (
+                      <li {...props}>
+                        <Checkbox checked={selected} />
+                        <ListItemText primary={option} />
+                      </li>
+                    )}
                   />
                 </Grid>
               </Grid>
