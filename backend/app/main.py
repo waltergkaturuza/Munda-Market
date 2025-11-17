@@ -34,8 +34,8 @@ allowed_origins = [
     "http://localhost:3001",  # Admin Console
     "http://127.0.0.1:3000",
     "http://127.0.0.1:3001",
-    "https://munda-market-admin.vercel.app",  # Admin Console (Vercel)
-    "https://munda-market-buyer.vercel.app",  # Buyer Portal (Vercel)
+    "https://munda-market-admin.vercel.app",  # Admin Console (Vercel Production)
+    "https://munda-market-buyer.vercel.app",  # Buyer Portal (Vercel Production)
     "https://admin.mundamarket.co.zw",  # Admin Console (Custom Domain)
     "https://buy.mundamarket.co.zw",  # Buyer Portal (Custom Domain)
     "https://munda-market.onrender.com",  # Backend (Render) - for direct API access
@@ -49,7 +49,8 @@ if settings.DEBUG:
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,  # Always use explicit list (never "*" with credentials)
+    allow_origins=allowed_origins,  # Explicit list of production URLs
+    allow_origin_regex=r"https://.*\.vercel\.app",  # Allow all Vercel preview deployments (*.vercel.app)
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
