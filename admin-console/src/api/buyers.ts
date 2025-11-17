@@ -43,6 +43,34 @@ export interface CreateBuyerRequest {
   company_name?: string;
   business_type?: string;
   auto_activate?: boolean;
+  gov_id?: string;
+  bio?: string;
+  business_address_line1?: string;
+  business_address_line2?: string;
+  business_city?: string;
+  business_district?: string;
+  business_province?: string;
+  business_postal_code?: string;
+  billing_address_line1?: string;
+  billing_address_line2?: string;
+  billing_city?: string;
+  billing_district?: string;
+  billing_province?: string;
+  billing_postal_code?: string;
+  delivery_address_line1?: string;
+  delivery_address_line2?: string;
+  delivery_city?: string;
+  delivery_district?: string;
+  delivery_province?: string;
+  delivery_postal_code?: string;
+  business_phone?: string;
+  business_email?: string;
+  website?: string;
+  tax_number?: string;
+  vat_number?: string;
+  business_registration_number?: string;
+  preferred_crops?: number[];
+  preferred_districts?: string[];
 }
 
 export const buyersApi = {

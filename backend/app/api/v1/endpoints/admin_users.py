@@ -2,7 +2,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, validator
 from datetime import datetime
 
 from ....core.database import get_db
@@ -14,8 +14,6 @@ from ....models.order import Order, OrderStatus
 from ....models.payment import Payment, Payout
 from ....models.audit import AuditLog, AuditAction, AuditEntity
 from ....models.buyer import Buyer, BuyerTier, BuyerStatus, PaymentTerms
-from ....models.farm import Farm
-from pydantic import BaseModel, EmailStr, validator
 
 router = APIRouter()
 
@@ -29,6 +27,46 @@ class CreateBuyerRequest(BaseModel):
     company_name: Optional[str] = None
     business_type: Optional[str] = None
     auto_activate: bool = True  # Auto-activate user and create profile
+    
+    # Additional buyer information
+    gov_id: Optional[str] = None
+    bio: Optional[str] = None
+    
+    # Business address
+    business_address_line1: Optional[str] = None
+    business_address_line2: Optional[str] = None
+    business_city: Optional[str] = None
+    business_district: Optional[str] = None
+    business_province: Optional[str] = None
+    business_postal_code: Optional[str] = None
+    
+    # Billing address
+    billing_address_line1: Optional[str] = None
+    billing_address_line2: Optional[str] = None
+    billing_city: Optional[str] = None
+    billing_district: Optional[str] = None
+    billing_province: Optional[str] = None
+    billing_postal_code: Optional[str] = None
+    
+    # Delivery address
+    delivery_address_line1: Optional[str] = None
+    delivery_address_line2: Optional[str] = None
+    delivery_city: Optional[str] = None
+    delivery_district: Optional[str] = None
+    delivery_province: Optional[str] = None
+    delivery_postal_code: Optional[str] = None
+    
+    # Business details
+    business_phone: Optional[str] = None
+    business_email: Optional[str] = None
+    website: Optional[str] = None
+    tax_number: Optional[str] = None
+    vat_number: Optional[str] = None
+    business_registration_number: Optional[str] = None
+    
+    # Preferences
+    preferred_crops: Optional[List[int]] = None  # List of crop IDs
+    preferred_districts: Optional[List[str]] = None  # Preferred source districts
     
     @validator('phone')
     def validate_phone(cls, v):
@@ -50,6 +88,39 @@ class CreateFarmerRequest(BaseModel):
     password: str
     auto_activate: bool = True  # Auto-activate user
     
+    # Additional farmer information
+    gov_id: Optional[str] = None
+    bio: Optional[str] = None
+    
+    # Home address
+    home_address_line1: Optional[str] = None
+    home_address_line2: Optional[str] = None
+    home_district: Optional[str] = None
+    home_province: Optional[str] = None
+    home_postal_code: Optional[str] = None
+    
+    # Farm location (initial farm)
+    farm_name: Optional[str] = None
+    farm_latitude: Optional[float] = None
+    farm_longitude: Optional[float] = None
+    farm_geohash: Optional[str] = None
+    farm_district: Optional[str] = None
+    farm_province: Optional[str] = None
+    farm_ward: Optional[str] = None
+    farm_address_line1: Optional[str] = None
+    farm_address_line2: Optional[str] = None
+    farm_postal_code: Optional[str] = None
+    farm_total_hectares: Optional[float] = None
+    farm_type: Optional[str] = None
+    irrigation_available: Optional[str] = None
+    
+    # Crop preferences
+    preferred_crops: Optional[List[int]] = None  # List of crop IDs
+    
+    # Association info
+    association_name: Optional[str] = None
+    association_membership_id: Optional[str] = None
+    
     @validator('phone')
     def validate_phone(cls, v):
         if not v.startswith('+263') and not v.startswith('0'):
@@ -60,6 +131,18 @@ class CreateFarmerRequest(BaseModel):
     def validate_password(cls, v):
         if len(v) < 6:
             raise ValueError('Password must be at least 6 characters long')
+        return v
+    
+    @validator('farm_latitude')
+    def validate_farm_latitude(cls, v):
+        if v is not None and not -90 <= v <= 90:
+            raise ValueError('Latitude must be between -90 and 90')
+        return v
+    
+    @validator('farm_longitude')
+    def validate_farm_longitude(cls, v):
+        if v is not None and not -180 <= v <= 180:
+            raise ValueError('Longitude must be between -180 and 180')
         return v
 
 
@@ -87,6 +170,21 @@ async def create_buyer(
     # Create new buyer user
     hashed_password = get_password_hash(buyer_data.password)
     
+    # Prepare profile data
+    profile_data = {
+        "bio": buyer_data.bio,
+        "home_address": {
+            "line1": buyer_data.business_address_line1,
+            "line2": buyer_data.business_address_line2,
+            "city": buyer_data.business_city,
+            "district": buyer_data.business_district,
+            "province": buyer_data.business_province,
+            "postal_code": buyer_data.business_postal_code,
+        } if any([buyer_data.business_address_line1, buyer_data.business_district]) else None,
+        "preferred_crops": buyer_data.preferred_crops or [],
+        "preferred_districts": buyer_data.preferred_districts or [],
+    }
+    
     new_user = User(
         name=buyer_data.name,
         phone=buyer_data.phone,
@@ -94,8 +192,13 @@ async def create_buyer(
         role=UserRole.BUYER,
         hashed_password=hashed_password,
         status=UserStatus.ACTIVE if buyer_data.auto_activate else UserStatus.PENDING,
-        is_verified=buyer_data.auto_activate
+        is_verified=buyer_data.auto_activate,
+        profile_data=json.dumps(profile_data) if profile_data else None
     )
+    
+    # Hash government ID if provided
+    if buyer_data.gov_id:
+        new_user.gov_id_hash = User.hash_gov_id(buyer_data.gov_id)
     
     db.add(new_user)
     db.flush()
@@ -107,8 +210,26 @@ async def create_buyer(
             user_id=new_user.user_id,
             company_name=buyer_data.company_name or buyer_data.name,
             business_type=buyer_data.business_type,
-            business_phone=buyer_data.phone,
-            business_email=buyer_data.email,
+            business_phone=buyer_data.business_phone or buyer_data.phone,
+            business_email=buyer_data.business_email or buyer_data.email,
+            website=buyer_data.website,
+            tax_number=buyer_data.tax_number,
+            vat_number=buyer_data.vat_number,
+            business_registration_number=buyer_data.business_registration_number,
+            billing_address_line1=buyer_data.billing_address_line1,
+            billing_address_line2=buyer_data.billing_address_line2,
+            billing_city=buyer_data.billing_city,
+            billing_district=buyer_data.billing_district,
+            billing_province=buyer_data.billing_province,
+            billing_postal_code=buyer_data.billing_postal_code,
+            default_delivery_address_line1=buyer_data.delivery_address_line1,
+            default_delivery_address_line2=buyer_data.delivery_address_line2,
+            default_delivery_city=buyer_data.delivery_city,
+            default_delivery_district=buyer_data.delivery_district,
+            default_delivery_province=buyer_data.delivery_province,
+            default_delivery_postal_code=buyer_data.delivery_postal_code,
+            preferred_crops=json.dumps(buyer_data.preferred_crops) if buyer_data.preferred_crops else None,
+            preferred_districts=json.dumps(buyer_data.preferred_districts) if buyer_data.preferred_districts else None,
             payment_terms=PaymentTerms.PREPAID,
             status=BuyerStatus.ACTIVE if buyer_data.auto_activate else BuyerStatus.PENDING,
             buyer_tier=BuyerTier.BASIC
@@ -166,6 +287,23 @@ async def create_farmer(
     # Create new farmer user
     hashed_password = get_password_hash(farmer_data.password)
     
+    # Prepare profile data
+    profile_data = {
+        "bio": farmer_data.bio,
+        "home_address": {
+            "line1": farmer_data.home_address_line1,
+            "line2": farmer_data.home_address_line2,
+            "district": farmer_data.home_district,
+            "province": farmer_data.home_province,
+            "postal_code": farmer_data.home_postal_code,
+        } if any([farmer_data.home_address_line1, farmer_data.home_district]) else None,
+        "preferred_crops": farmer_data.preferred_crops or [],
+        "association": {
+            "name": farmer_data.association_name,
+            "membership_id": farmer_data.association_membership_id,
+        } if farmer_data.association_name else None,
+    }
+    
     new_user = User(
         name=farmer_data.name,
         phone=farmer_data.phone,
@@ -173,10 +311,39 @@ async def create_farmer(
         role=UserRole.FARMER,
         hashed_password=hashed_password,
         status=UserStatus.ACTIVE if farmer_data.auto_activate else UserStatus.PENDING,
-        is_verified=farmer_data.auto_activate
+        is_verified=farmer_data.auto_activate,
+        profile_data=json.dumps(profile_data) if profile_data else None
     )
     
+    # Hash government ID if provided
+    if farmer_data.gov_id:
+        new_user.gov_id_hash = User.hash_gov_id(farmer_data.gov_id)
+    
     db.add(new_user)
+    db.flush()
+    
+    # Create initial farm if farm data provided
+    farm = None
+    if farmer_data.farm_name and farmer_data.farm_district and farmer_data.farm_province:
+        farm = Farm(
+            user_id=new_user.user_id,
+            name=farmer_data.farm_name,
+            geohash=farmer_data.farm_geohash or "",
+            latitude=farmer_data.farm_latitude,
+            longitude=farmer_data.farm_longitude,
+            ward=farmer_data.farm_ward,
+            district=farmer_data.farm_district,
+            province=farmer_data.farm_province,
+            address_line1=farmer_data.farm_address_line1,
+            address_line2=farmer_data.farm_address_line2,
+            postal_code=farmer_data.farm_postal_code,
+            total_hectares=farmer_data.farm_total_hectares,
+            farm_type=farmer_data.farm_type,
+            irrigation_available=farmer_data.irrigation_available,
+            association_name=farmer_data.association_name,
+            association_membership_id=farmer_data.association_membership_id
+        )
+        db.add(farm)
     
     # Log action
     audit = AuditLog(
@@ -190,6 +357,8 @@ async def create_farmer(
     db.add(audit)
     db.commit()
     db.refresh(new_user)
+    if farm:
+        db.refresh(farm)
     
     return {
         "message": "Farmer created successfully",
@@ -197,7 +366,9 @@ async def create_farmer(
         "name": new_user.name,
         "phone": new_user.phone,
         "email": new_user.email,
-        "status": new_user.status.value
+        "status": new_user.status.value,
+        "farm_created": farm is not None,
+        "farm_id": farm.farm_id if farm else None
     }
 
 

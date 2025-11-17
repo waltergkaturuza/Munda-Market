@@ -33,6 +33,29 @@ export interface CreateFarmerRequest {
   email?: string;
   password: string;
   auto_activate?: boolean;
+  gov_id?: string;
+  bio?: string;
+  home_address_line1?: string;
+  home_address_line2?: string;
+  home_district?: string;
+  home_province?: string;
+  home_postal_code?: string;
+  farm_name?: string;
+  farm_latitude?: number;
+  farm_longitude?: number;
+  farm_geohash?: string;
+  farm_district?: string;
+  farm_province?: string;
+  farm_ward?: string;
+  farm_address_line1?: string;
+  farm_address_line2?: string;
+  farm_postal_code?: string;
+  farm_total_hectares?: number;
+  farm_type?: string;
+  irrigation_available?: string;
+  preferred_crops?: number[];
+  association_name?: string;
+  association_membership_id?: string;
 }
 
 export interface CreateFarmRequest {

@@ -29,10 +29,14 @@ import {
   FormControlLabel,
   Switch,
   Alert,
+  Checkbox,
+  ListItemText,
+  Autocomplete,
 } from '@mui/material';
 import { MoreVert, Visibility, Block, CheckCircle, Phone, Email, Add, Refresh, Business } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { farmersApi, Farmer, CreateFarmRequest } from '@/api/farmers';
+import { farmersApi, Farmer, CreateFarmRequest, CreateFarmerRequest } from '@/api/farmers';
+import { inventoryApi } from '@/api/inventory';
 
 const statusColors: Record<string, 'default' | 'success' | 'warning' | 'error'> = {
   PENDING: 'warning',
@@ -51,12 +55,36 @@ export default function FarmersPage() {
   const [actionReason, setActionReason] = useState('');
   const [anchorEl, setAnchorEl] = useState<{ [key: number]: HTMLElement | null }>({});
   const [createFarmerDialogOpen, setCreateFarmerDialogOpen] = useState(false);
-  const [createFarmerForm, setCreateFarmerForm] = useState({
+  const [createFarmerFormTab, setCreateFarmerFormTab] = useState(0);
+  const [createFarmerForm, setCreateFarmerForm] = useState<CreateFarmerRequest>({
     name: '',
     phone: '',
     email: '',
     password: '',
     auto_activate: true,
+    gov_id: '',
+    bio: '',
+    home_address_line1: '',
+    home_address_line2: '',
+    home_district: '',
+    home_province: '',
+    home_postal_code: '',
+    farm_name: '',
+    farm_latitude: -17.8292,
+    farm_longitude: 31.0522,
+    farm_geohash: '',
+    farm_district: '',
+    farm_province: '',
+    farm_ward: '',
+    farm_address_line1: '',
+    farm_address_line2: '',
+    farm_postal_code: '',
+    farm_total_hectares: undefined,
+    farm_type: '',
+    irrigation_available: '',
+    preferred_crops: [],
+    association_name: '',
+    association_membership_id: '',
   });
   const [createFarmDialogOpen, setCreateFarmDialogOpen] = useState(false);
   const [createFarmForm, setCreateFarmForm] = useState<CreateFarmRequest>({
@@ -602,69 +630,372 @@ export default function FarmersPage() {
       <Dialog
         open={createFarmerDialogOpen}
         onClose={() => setCreateFarmerDialogOpen(false)}
-        maxWidth="sm"
+        maxWidth="lg"
         fullWidth
       >
         <DialogTitle>Create New Farmer</DialogTitle>
         <DialogContent>
-          <Box display="flex" flexDirection="column" gap={2} pt={1}>
-            <TextField
-              fullWidth
-              label="Full Name"
-              value={createFarmerForm.name}
-              onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, name: e.target.value })}
-              required
-            />
-            <TextField
-              fullWidth
-              label="Phone Number"
-              value={createFarmerForm.phone}
-              onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, phone: e.target.value })}
-              required
-              placeholder="+263771234567"
-              helperText="Must start with +263 or 0"
-            />
-            <TextField
-              fullWidth
-              label="Email (Optional)"
-              type="email"
-              value={createFarmerForm.email}
-              onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, email: e.target.value })}
-            />
-            <TextField
-              fullWidth
-              label="Password"
-              type="password"
-              value={createFarmerForm.password}
-              onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, password: e.target.value })}
-              required
-              helperText="Minimum 6 characters"
-            />
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={createFarmerForm.auto_activate}
-                  onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, auto_activate: e.target.checked })}
-                />
-              }
-              label="Auto-activate account (farmer can login immediately)"
-            />
-            <Typography variant="body2" color="text.secondary">
-              Note: Farmer will need to register farms after login to start using the platform.
-            </Typography>
+          <Box pt={1}>
+            <Tabs value={createFarmerFormTab} onChange={(_, v) => setCreateFarmerFormTab(v)} sx={{ mb: 3 }}>
+              <Tab label="Basic Info" />
+              <Tab label="Home Address" />
+              <Tab label="Farm Details" />
+              <Tab label="Additional Info" />
+            </Tabs>
+
+            {/* Basic Info Tab */}
+            {createFarmerFormTab === 0 && (
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Full Name"
+                    value={createFarmerForm.name}
+                    onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, name: e.target.value })}
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Phone Number"
+                    value={createFarmerForm.phone}
+                    onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, phone: e.target.value })}
+                    required
+                    placeholder="+263771234567"
+                    helperText="Must start with +263 or 0"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Email (Optional)"
+                    type="email"
+                    value={createFarmerForm.email}
+                    onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, email: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Government ID (Optional)"
+                    value={createFarmerForm.gov_id}
+                    onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, gov_id: e.target.value })}
+                    helperText="National ID or Passport Number"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Password"
+                    type="password"
+                    value={createFarmerForm.password}
+                    onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, password: e.target.value })}
+                    required
+                    helperText="Minimum 6 characters"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={createFarmerForm.auto_activate}
+                        onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, auto_activate: e.target.checked })}
+                      />
+                    }
+                    label="Auto-activate account"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Bio / Background Information (Optional)"
+                    multiline
+                    rows={4}
+                    value={createFarmerForm.bio}
+                    onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, bio: e.target.value })}
+                    placeholder="Tell us about the farmer's background, experience, etc."
+                  />
+                </Grid>
+              </Grid>
+            )}
+
+            {/* Home Address Tab */}
+            {createFarmerFormTab === 1 && (
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    Home Address
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Address Line 1"
+                    value={createFarmerForm.home_address_line1}
+                    onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, home_address_line1: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Address Line 2"
+                    value={createFarmerForm.home_address_line2}
+                    onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, home_address_line2: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="District"
+                    value={createFarmerForm.home_district}
+                    onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, home_district: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Province"
+                    value={createFarmerForm.home_province}
+                    onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, home_province: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Postal Code"
+                    value={createFarmerForm.home_postal_code}
+                    onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, home_postal_code: e.target.value })}
+                  />
+                </Grid>
+              </Grid>
+            )}
+
+            {/* Farm Details Tab */}
+            {createFarmerFormTab === 2 && (
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    Initial Farm Information (Optional - can be added later)
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Farm Name"
+                    value={createFarmerForm.farm_name}
+                    onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, farm_name: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Farm Type"
+                    value={createFarmerForm.farm_type}
+                    onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, farm_type: e.target.value })}
+                    placeholder="e.g., Commercial, Subsistence, Organic"
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Latitude"
+                    type="number"
+                    value={createFarmerForm.farm_latitude}
+                    onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, farm_latitude: parseFloat(e.target.value) || -17.8292 })}
+                    inputProps={{ step: 'any' }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Longitude"
+                    type="number"
+                    value={createFarmerForm.farm_longitude}
+                    onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, farm_longitude: parseFloat(e.target.value) || 31.0522 })}
+                    inputProps={{ step: 'any' }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Geohash"
+                    value={createFarmerForm.farm_geohash}
+                    onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, farm_geohash: e.target.value })}
+                    helperText="Location geohash identifier"
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Farm District"
+                    value={createFarmerForm.farm_district}
+                    onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, farm_district: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Farm Province"
+                    value={createFarmerForm.farm_province}
+                    onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, farm_province: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Ward"
+                    value={createFarmerForm.farm_ward}
+                    onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, farm_ward: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Farm Address Line 1"
+                    value={createFarmerForm.farm_address_line1}
+                    onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, farm_address_line1: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Farm Address Line 2"
+                    value={createFarmerForm.farm_address_line2}
+                    onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, farm_address_line2: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Postal Code"
+                    value={createFarmerForm.farm_postal_code}
+                    onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, farm_postal_code: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Total Hectares"
+                    type="number"
+                    value={createFarmerForm.farm_total_hectares || ''}
+                    onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, farm_total_hectares: e.target.value ? parseFloat(e.target.value) : undefined })}
+                    inputProps={{ step: 'any', min: 0 }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Irrigation Available"
+                    value={createFarmerForm.irrigation_available}
+                    onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, irrigation_available: e.target.value })}
+                    placeholder="e.g., Drip, Sprinkler, Rainfed"
+                  />
+                </Grid>
+              </Grid>
+            )}
+
+            {/* Additional Info Tab */}
+            {createFarmerFormTab === 3 && (
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    Crop Preferences
+                  </Typography>
+                  {crops && (
+                    <Autocomplete
+                      multiple
+                      options={crops}
+                      getOptionLabel={(option) => option.crop_name}
+                      value={crops.filter((crop) => createFarmerForm.preferred_crops?.includes(crop.crop_id))}
+                      onChange={(_, newValue) => {
+                        setCreateFarmerForm({
+                          ...createFarmerForm,
+                          preferred_crops: newValue.map((c) => c.crop_id),
+                        });
+                      }}
+                      renderInput={(params) => (
+                        <TextField {...params} label="Select Preferred Crops" placeholder="Choose crops..." />
+                      )}
+                      renderOption={(props, option, { selected }) => (
+                        <li {...props}>
+                          <Checkbox checked={selected} />
+                          <ListItemText primary={option.crop_name} />
+                        </li>
+                      )}
+                    />
+                  )}
+                </Grid>
+                <Grid item xs={12}>
+                  <Divider sx={{ my: 2 }} />
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    Association Information
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Association Name"
+                    value={createFarmerForm.association_name}
+                    onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, association_name: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Association Membership ID"
+                    value={createFarmerForm.association_membership_id}
+                    onChange={(e) => setCreateFarmerForm({ ...createFarmerForm, association_membership_id: e.target.value })}
+                  />
+                </Grid>
+              </Grid>
+            )}
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setCreateFarmerDialogOpen(false)}>Cancel</Button>
+          {createFarmerFormTab > 0 && (
+            <Button onClick={() => setCreateFarmerFormTab(createFarmerFormTab - 1)}>Previous</Button>
+          )}
+          {createFarmerFormTab < 3 && (
+            <Button onClick={() => setCreateFarmerFormTab(createFarmerFormTab + 1)} variant="outlined">
+              Next
+            </Button>
+          )}
           <Button
             onClick={() => {
-              createFarmerMutation.mutate({
+              // Clean up empty strings and send all fields
+              const formData: CreateFarmerRequest = {
                 name: createFarmerForm.name,
                 phone: createFarmerForm.phone,
-                email: createFarmerForm.email || undefined,
                 password: createFarmerForm.password,
                 auto_activate: createFarmerForm.auto_activate,
-              });
+                email: createFarmerForm.email || undefined,
+                gov_id: createFarmerForm.gov_id || undefined,
+                bio: createFarmerForm.bio || undefined,
+                home_address_line1: createFarmerForm.home_address_line1 || undefined,
+                home_address_line2: createFarmerForm.home_address_line2 || undefined,
+                home_district: createFarmerForm.home_district || undefined,
+                home_province: createFarmerForm.home_province || undefined,
+                home_postal_code: createFarmerForm.home_postal_code || undefined,
+                farm_name: createFarmerForm.farm_name || undefined,
+                farm_latitude: createFarmerForm.farm_latitude,
+                farm_longitude: createFarmerForm.farm_longitude,
+                farm_geohash: createFarmerForm.farm_geohash || undefined,
+                farm_district: createFarmerForm.farm_district || undefined,
+                farm_province: createFarmerForm.farm_province || undefined,
+                farm_ward: createFarmerForm.farm_ward || undefined,
+                farm_address_line1: createFarmerForm.farm_address_line1 || undefined,
+                farm_address_line2: createFarmerForm.farm_address_line2 || undefined,
+                farm_postal_code: createFarmerForm.farm_postal_code || undefined,
+                farm_total_hectares: createFarmerForm.farm_total_hectares,
+                farm_type: createFarmerForm.farm_type || undefined,
+                irrigation_available: createFarmerForm.irrigation_available || undefined,
+                preferred_crops: createFarmerForm.preferred_crops && createFarmerForm.preferred_crops.length > 0 ? createFarmerForm.preferred_crops : undefined,
+                association_name: createFarmerForm.association_name || undefined,
+                association_membership_id: createFarmerForm.association_membership_id || undefined,
+              };
+              createFarmerMutation.mutate(formData);
             }}
             variant="contained"
             disabled={

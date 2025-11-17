@@ -28,10 +28,14 @@ import {
   Divider,
   FormControlLabel,
   Switch,
+  Checkbox,
+  ListItemText,
+  Autocomplete,
 } from '@mui/material';
 import { MoreVert, Visibility, Block, CheckCircle, Phone, Email, Business, Add } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { buyersApi, Buyer, CreateBuyerProfileRequest } from '@/api/buyers';
+import { buyersApi, Buyer, CreateBuyerProfileRequest, CreateBuyerRequest } from '@/api/buyers';
+import { inventoryApi } from '@/api/inventory';
 
 const statusColors: Record<string, 'default' | 'success' | 'warning' | 'error'> = {
   PENDING: 'warning',
@@ -50,7 +54,8 @@ export default function BuyersPage() {
   const [actionReason, setActionReason] = useState('');
   const [anchorEl, setAnchorEl] = useState<{ [key: number]: HTMLElement | null }>({});
   const [createBuyerDialogOpen, setCreateBuyerDialogOpen] = useState(false);
-  const [createBuyerForm, setCreateBuyerForm] = useState({
+  const [createBuyerFormTab, setCreateBuyerFormTab] = useState(0);
+  const [createBuyerForm, setCreateBuyerForm] = useState<CreateBuyerRequest>({
     name: '',
     phone: '',
     email: '',
@@ -58,6 +63,34 @@ export default function BuyersPage() {
     company_name: '',
     business_type: '',
     auto_activate: true,
+    gov_id: '',
+    bio: '',
+    business_address_line1: '',
+    business_address_line2: '',
+    business_city: '',
+    business_district: '',
+    business_province: '',
+    business_postal_code: '',
+    billing_address_line1: '',
+    billing_address_line2: '',
+    billing_city: '',
+    billing_district: '',
+    billing_province: '',
+    billing_postal_code: '',
+    delivery_address_line1: '',
+    delivery_address_line2: '',
+    delivery_city: '',
+    delivery_district: '',
+    delivery_province: '',
+    delivery_postal_code: '',
+    business_phone: '',
+    business_email: '',
+    website: '',
+    tax_number: '',
+    vat_number: '',
+    business_registration_number: '',
+    preferred_crops: [],
+    preferred_districts: [],
   });
   const [createProfileDialogOpen, setCreateProfileDialogOpen] = useState(false);
   const [profileData, setProfileData] = useState<CreateBuyerProfileRequest>({
@@ -111,6 +144,7 @@ export default function BuyersPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['buyers'] });
       setCreateBuyerDialogOpen(false);
+      setCreateBuyerFormTab(0);
       setCreateBuyerForm({
         name: '',
         phone: '',
@@ -119,6 +153,34 @@ export default function BuyersPage() {
         company_name: '',
         business_type: '',
         auto_activate: true,
+        gov_id: '',
+        bio: '',
+        business_address_line1: '',
+        business_address_line2: '',
+        business_city: '',
+        business_district: '',
+        business_province: '',
+        business_postal_code: '',
+        billing_address_line1: '',
+        billing_address_line2: '',
+        billing_city: '',
+        billing_district: '',
+        billing_province: '',
+        billing_postal_code: '',
+        delivery_address_line1: '',
+        delivery_address_line2: '',
+        delivery_city: '',
+        delivery_district: '',
+        delivery_province: '',
+        delivery_postal_code: '',
+        business_phone: '',
+        business_email: '',
+        website: '',
+        tax_number: '',
+        vat_number: '',
+        business_registration_number: '',
+        preferred_crops: [],
+        preferred_districts: [],
       });
     },
   });
@@ -587,82 +649,455 @@ export default function BuyersPage() {
       <Dialog
         open={createBuyerDialogOpen}
         onClose={() => setCreateBuyerDialogOpen(false)}
-        maxWidth="sm"
+        maxWidth="lg"
         fullWidth
       >
         <DialogTitle>Create New Buyer</DialogTitle>
         <DialogContent>
-          <Box display="flex" flexDirection="column" gap={2} pt={1}>
-            <TextField
-              fullWidth
-              label="Full Name"
-              value={createBuyerForm.name}
-              onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, name: e.target.value })}
-              required
-            />
-            <TextField
-              fullWidth
-              label="Phone Number"
-              value={createBuyerForm.phone}
-              onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, phone: e.target.value })}
-              required
-              placeholder="+263771234567"
-              helperText="Must start with +263 or 0"
-            />
-            <TextField
-              fullWidth
-              label="Email (Optional)"
-              type="email"
-              value={createBuyerForm.email}
-              onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, email: e.target.value })}
-            />
-            <TextField
-              fullWidth
-              label="Password"
-              type="password"
-              value={createBuyerForm.password}
-              onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, password: e.target.value })}
-              required
-              helperText="Minimum 6 characters"
-            />
-            <TextField
-              fullWidth
-              label="Company Name (Optional)"
-              value={createBuyerForm.company_name}
-              onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, company_name: e.target.value })}
-              helperText="If provided, buyer profile will be created automatically"
-            />
-            <TextField
-              fullWidth
-              label="Business Type (Optional)"
-              value={createBuyerForm.business_type}
-              onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, business_type: e.target.value })}
-              placeholder="e.g., Restaurant, Retailer, Wholesaler"
-            />
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={createBuyerForm.auto_activate}
-                  onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, auto_activate: e.target.checked })}
-                />
-              }
-              label="Auto-activate account (user can login immediately)"
-            />
+          <Box pt={1}>
+            <Tabs value={createBuyerFormTab} onChange={(_, v) => setCreateBuyerFormTab(v)} sx={{ mb: 3 }}>
+              <Tab label="Basic Info" />
+              <Tab label="Business Details" />
+              <Tab label="Addresses" />
+              <Tab label="Additional Info" />
+            </Tabs>
+
+            {/* Basic Info Tab */}
+            {createBuyerFormTab === 0 && (
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Full Name"
+                    value={createBuyerForm.name}
+                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, name: e.target.value })}
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Phone Number"
+                    value={createBuyerForm.phone}
+                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, phone: e.target.value })}
+                    required
+                    placeholder="+263771234567"
+                    helperText="Must start with +263 or 0"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Email (Optional)"
+                    type="email"
+                    value={createBuyerForm.email}
+                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, email: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Government ID (Optional)"
+                    value={createBuyerForm.gov_id}
+                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, gov_id: e.target.value })}
+                    helperText="National ID or Passport Number"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Password"
+                    type="password"
+                    value={createBuyerForm.password}
+                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, password: e.target.value })}
+                    required
+                    helperText="Minimum 6 characters"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={createBuyerForm.auto_activate}
+                        onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, auto_activate: e.target.checked })}
+                      />
+                    }
+                    label="Auto-activate account"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Bio / Background Information (Optional)"
+                    multiline
+                    rows={4}
+                    value={createBuyerForm.bio}
+                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, bio: e.target.value })}
+                    placeholder="Tell us about the buyer's background, business, etc."
+                  />
+                </Grid>
+              </Grid>
+            )}
+
+            {/* Business Details Tab */}
+            {createBuyerFormTab === 1 && (
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    Company Information
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Company Name"
+                    value={createBuyerForm.company_name}
+                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, company_name: e.target.value })}
+                    helperText="If provided, buyer profile will be created automatically"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Business Type"
+                    value={createBuyerForm.business_type}
+                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, business_type: e.target.value })}
+                    placeholder="e.g., Restaurant, Retailer, Wholesaler"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Business Phone"
+                    value={createBuyerForm.business_phone}
+                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, business_phone: e.target.value })}
+                    placeholder="+263771234567"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Business Email"
+                    type="email"
+                    value={createBuyerForm.business_email}
+                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, business_email: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Website (Optional)"
+                    value={createBuyerForm.website}
+                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, website: e.target.value })}
+                    placeholder="https://example.com"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <Divider sx={{ my: 2 }} />
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    Tax & Registration Information
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Tax Number"
+                    value={createBuyerForm.tax_number}
+                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, tax_number: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="VAT Number"
+                    value={createBuyerForm.vat_number}
+                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, vat_number: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Business Registration Number"
+                    value={createBuyerForm.business_registration_number}
+                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, business_registration_number: e.target.value })}
+                  />
+                </Grid>
+              </Grid>
+            )}
+
+            {/* Addresses Tab */}
+            {createBuyerFormTab === 2 && (
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    Business Address
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Address Line 1"
+                    value={createBuyerForm.business_address_line1}
+                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, business_address_line1: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Address Line 2"
+                    value={createBuyerForm.business_address_line2}
+                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, business_address_line2: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="City"
+                    value={createBuyerForm.business_city}
+                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, business_city: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="District"
+                    value={createBuyerForm.business_district}
+                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, business_district: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Province"
+                    value={createBuyerForm.business_province}
+                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, business_province: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Postal Code"
+                    value={createBuyerForm.business_postal_code}
+                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, business_postal_code: e.target.value })}
+                  />
+                </Grid>
+
+                <Grid item xs={12}>
+                  <Divider sx={{ my: 2 }} />
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    Billing Address (Optional - defaults to business address)
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Billing Address Line 1"
+                    value={createBuyerForm.billing_address_line1}
+                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, billing_address_line1: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Billing Address Line 2"
+                    value={createBuyerForm.billing_address_line2}
+                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, billing_address_line2: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Billing City"
+                    value={createBuyerForm.billing_city}
+                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, billing_city: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Billing District"
+                    value={createBuyerForm.billing_district}
+                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, billing_district: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Billing Province"
+                    value={createBuyerForm.billing_province}
+                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, billing_province: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Billing Postal Code"
+                    value={createBuyerForm.billing_postal_code}
+                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, billing_postal_code: e.target.value })}
+                  />
+                </Grid>
+
+                <Grid item xs={12}>
+                  <Divider sx={{ my: 2 }} />
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    Default Delivery Address (Optional - defaults to business address)
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Delivery Address Line 1"
+                    value={createBuyerForm.delivery_address_line1}
+                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, delivery_address_line1: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Delivery Address Line 2"
+                    value={createBuyerForm.delivery_address_line2}
+                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, delivery_address_line2: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Delivery City"
+                    value={createBuyerForm.delivery_city}
+                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, delivery_city: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Delivery District"
+                    value={createBuyerForm.delivery_district}
+                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, delivery_district: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Delivery Province"
+                    value={createBuyerForm.delivery_province}
+                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, delivery_province: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Delivery Postal Code"
+                    value={createBuyerForm.delivery_postal_code}
+                    onChange={(e) => setCreateBuyerForm({ ...createBuyerForm, delivery_postal_code: e.target.value })}
+                  />
+                </Grid>
+              </Grid>
+            )}
+
+            {/* Additional Info Tab */}
+            {createBuyerFormTab === 3 && (
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    Crop Preferences
+                  </Typography>
+                  {crops && (
+                    <Autocomplete
+                      multiple
+                      options={crops}
+                      getOptionLabel={(option) => option.crop_name}
+                      value={crops.filter((crop) => createBuyerForm.preferred_crops?.includes(crop.crop_id))}
+                      onChange={(_, newValue) => {
+                        setCreateBuyerForm({
+                          ...createBuyerForm,
+                          preferred_crops: newValue.map((c) => c.crop_id),
+                        });
+                      }}
+                      renderInput={(params) => (
+                        <TextField {...params} label="Select Preferred Crops" placeholder="Choose crops..." />
+                      )}
+                      renderOption={(props, option, { selected }) => (
+                        <li {...props}>
+                          <Checkbox checked={selected} />
+                          <ListItemText primary={option.crop_name} />
+                        </li>
+                      )}
+                    />
+                  )}
+                </Grid>
+                <Grid item xs={12}>
+                  <Divider sx={{ my: 2 }} />
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    Preferred Source Districts (Optional)
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    multiline
+                    rows={3}
+                    value={createBuyerForm.preferred_districts?.join(', ') || ''}
+                    onChange={(e) => {
+                      const districts = e.target.value.split(',').map((d) => d.trim()).filter((d) => d.length > 0);
+                      setCreateBuyerForm({ ...createBuyerForm, preferred_districts: districts });
+                    }}
+                    placeholder="Enter districts separated by commas (e.g., Harare, Bulawayo, Mutare)"
+                    helperText="Districts where you prefer to source produce from"
+                  />
+                </Grid>
+              </Grid>
+            )}
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setCreateBuyerDialogOpen(false)}>Cancel</Button>
+          {createBuyerFormTab > 0 && (
+            <Button onClick={() => setCreateBuyerFormTab(createBuyerFormTab - 1)}>Previous</Button>
+          )}
+          {createBuyerFormTab < 3 && (
+            <Button onClick={() => setCreateBuyerFormTab(createBuyerFormTab + 1)} variant="outlined">
+              Next
+            </Button>
+          )}
           <Button
             onClick={() => {
-              createBuyerMutation.mutate({
+              // Clean up empty strings and send all fields
+              const formData: CreateBuyerRequest = {
                 name: createBuyerForm.name,
                 phone: createBuyerForm.phone,
-                email: createBuyerForm.email || undefined,
                 password: createBuyerForm.password,
+                auto_activate: createBuyerForm.auto_activate,
+                email: createBuyerForm.email || undefined,
+                gov_id: createBuyerForm.gov_id || undefined,
+                bio: createBuyerForm.bio || undefined,
                 company_name: createBuyerForm.company_name || undefined,
                 business_type: createBuyerForm.business_type || undefined,
-                auto_activate: createBuyerForm.auto_activate,
-              });
+                business_address_line1: createBuyerForm.business_address_line1 || undefined,
+                business_address_line2: createBuyerForm.business_address_line2 || undefined,
+                business_city: createBuyerForm.business_city || undefined,
+                business_district: createBuyerForm.business_district || undefined,
+                business_province: createBuyerForm.business_province || undefined,
+                business_postal_code: createBuyerForm.business_postal_code || undefined,
+                billing_address_line1: createBuyerForm.billing_address_line1 || undefined,
+                billing_address_line2: createBuyerForm.billing_address_line2 || undefined,
+                billing_city: createBuyerForm.billing_city || undefined,
+                billing_district: createBuyerForm.billing_district || undefined,
+                billing_province: createBuyerForm.billing_province || undefined,
+                billing_postal_code: createBuyerForm.billing_postal_code || undefined,
+                delivery_address_line1: createBuyerForm.delivery_address_line1 || undefined,
+                delivery_address_line2: createBuyerForm.delivery_address_line2 || undefined,
+                delivery_city: createBuyerForm.delivery_city || undefined,
+                delivery_district: createBuyerForm.delivery_district || undefined,
+                delivery_province: createBuyerForm.delivery_province || undefined,
+                delivery_postal_code: createBuyerForm.delivery_postal_code || undefined,
+                business_phone: createBuyerForm.business_phone || undefined,
+                business_email: createBuyerForm.business_email || undefined,
+                website: createBuyerForm.website || undefined,
+                tax_number: createBuyerForm.tax_number || undefined,
+                vat_number: createBuyerForm.vat_number || undefined,
+                business_registration_number: createBuyerForm.business_registration_number || undefined,
+                preferred_crops: createBuyerForm.preferred_crops && createBuyerForm.preferred_crops.length > 0 ? createBuyerForm.preferred_crops : undefined,
+                preferred_districts: createBuyerForm.preferred_districts && createBuyerForm.preferred_districts.length > 0 ? createBuyerForm.preferred_districts : undefined,
+              };
+              createBuyerMutation.mutate(formData);
             }}
             variant="contained"
             disabled={
