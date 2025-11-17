@@ -2,8 +2,13 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import axios from 'axios';
 
 // Create axios instance with base URL
+// Use environment variable or default to localhost for development
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
+const API_VERSION = '/api/v1';
+const API_URL = `${API_BASE_URL}${API_VERSION}`;
+
 export const api = axios.create({
-  baseURL: 'http://localhost:8000/api/v1',
+  baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },

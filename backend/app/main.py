@@ -32,10 +32,13 @@ app = FastAPI(
 allowed_origins = [
     "http://localhost:3000",  # Buyer Portal
     "http://localhost:3001",  # Admin Console
+    "http://localhost:3002",  # Farmer App
     "http://127.0.0.1:3000",
     "http://127.0.0.1:3001",
+    "http://127.0.0.1:3002",
     "https://munda-market-admin.vercel.app",  # Admin Console (Vercel Production)
     "https://munda-market-buyer.vercel.app",  # Buyer Portal (Vercel Production)
+    "https://munda-market-farmer.vercel.app",  # Farmer App (Vercel Production)
     "https://admin.mundamarket.co.zw",  # Admin Console (Custom Domain)
     "https://buy.mundamarket.co.zw",  # Buyer Portal (Custom Domain)
     "https://munda-market.onrender.com",  # Backend (Render) - for direct API access
