@@ -35,6 +35,8 @@ import {
   VerifiedUser,
   PriceChange,
   Campaign,
+  Home,
+  Info,
 } from '@mui/icons-material';
 import { useAuthStore } from '@/store/auth';
 import { useThemeStore } from '@/store/theme';
@@ -43,6 +45,7 @@ import { ROUTES } from '@/config/constants';
 const drawerWidth = 260;
 
 const menuItems = [
+  { text: 'Home', icon: <Home />, path: ROUTES.HOME },
   { text: 'Dashboard', icon: <Dashboard />, path: ROUTES.DASHBOARD },
   { text: 'KYC Queue', icon: <VerifiedUser />, path: ROUTES.KYC },
   { text: 'Farmers', icon: <People />, path: ROUTES.FARMERS },
@@ -55,6 +58,7 @@ const menuItems = [
   { text: 'Messaging', icon: <Message />, path: ROUTES.MESSAGING },
   { text: 'Audit Logs', icon: <Assessment />, path: ROUTES.AUDIT_LOGS },
   { text: 'Banners', icon: <Campaign />, path: ROUTES.BANNERS },
+  { text: 'About Us', icon: <Info />, path: ROUTES.ABOUT },
   { text: 'Settings', icon: <Settings />, path: ROUTES.SETTINGS },
 ];
 

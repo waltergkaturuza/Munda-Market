@@ -3,6 +3,7 @@ import { ROUTES } from '@/config/constants';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import LoginPage from '@/pages/LoginPage';
+import HomePage from '@/pages/HomePage';
 import DashboardPage from '@/pages/DashboardPage';
 import KYCPage from '@/pages/KYCPage';
 import FarmersPage from '@/pages/FarmersPage';
@@ -16,6 +17,7 @@ import MessagingPage from '@/pages/MessagingPage';
 import AuditLogsPage from '@/pages/AuditLogsPage';
 import SettingsPage from '@/pages/SettingsPage';
 import BannersPage from '@/pages/BannersPage';
+import AboutUsPage from '@/pages/AboutUsPage';
 
 export function AppRoutes() {
   return (
@@ -30,7 +32,7 @@ export function AppRoutes() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<Navigate to={ROUTES.DASHBOARD} replace />} />
+        <Route index element={<HomePage />} />
         <Route path={ROUTES.DASHBOARD} element={<DashboardPage />} />
         <Route path={ROUTES.KYC} element={<KYCPage />} />
         <Route path={ROUTES.FARMERS} element={<FarmersPage />} />
@@ -44,6 +46,7 @@ export function AppRoutes() {
         <Route path={ROUTES.AUDIT_LOGS} element={<AuditLogsPage />} />
         <Route path={ROUTES.SETTINGS} element={<SettingsPage />} />
         <Route path={ROUTES.BANNERS} element={<BannersPage />} />
+        <Route path={ROUTES.ABOUT} element={<AboutUsPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to={ROUTES.LOGIN} replace />} />
