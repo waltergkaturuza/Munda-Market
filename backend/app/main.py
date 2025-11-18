@@ -50,6 +50,17 @@ logger.info(f"CORS configured with {len(allowed_origins)} allowed origins")
 if settings.DEBUG:
     logger.info(f"DEBUG mode: CORS origins = {allowed_origins}")
 
+# Helper function to check if origin is allowed
+def is_origin_allowed(origin: str) -> bool:
+    """Check if an origin is allowed for CORS"""
+    if not origin:
+        return False
+    if origin in allowed_origins:
+        return True
+    if re.match(r"https://.*\.vercel\.app", origin):
+        return True
+    return False
+
 # Custom CORS middleware to handle both explicit origins and regex patterns
 # This is needed because FastAPI's CORSMiddleware doesn't support both
 # allow_origin_regex and allow_origins together with allow_credentials=True
@@ -64,17 +75,10 @@ class CustomCORSMiddleware(BaseHTTPMiddleware):
         origin = request.headers.get("origin")
         
         # Check if origin is allowed
-        is_allowed = False
-        if origin:
-            # Check explicit list
-            if origin in allowed_origins:
-                is_allowed = True
-            # Check regex pattern for Vercel deployments
-            elif re.match(r"https://.*\.vercel\.app", origin):
-                logger.info(f"Allowing Vercel origin: {origin}")
-                is_allowed = True
-            else:
-                logger.warning(f"CORS: Origin not allowed: {origin}")
+        is_allowed = is_origin_allowed(origin) if origin else False
+        
+        if origin and not is_allowed:
+            logger.warning(f"CORS: Origin not allowed: {origin}")
         
         # Handle preflight OPTIONS request
         if request.method == "OPTIONS":
@@ -124,10 +128,11 @@ async def add_process_time_header(request: Request, call_next):
     response.headers["X-Process-Time"] = str(process_time)
     return response
 
-# Global exception handler
+# Global exception handler - MUST add CORS headers
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
-    return JSONResponse(
+    origin = request.headers.get("origin")
+    response = JSONResponse(
         status_code=exc.status_code,
         content={
             "error": exc.detail,
@@ -135,6 +140,34 @@ async def http_exception_handler(request: Request, exc: HTTPException):
             "timestamp": time.time()
         },
     )
+    # Add CORS headers to error responses
+    if is_origin_allowed(origin):
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+    return response
+
+# General exception handler for unhandled exceptions
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    origin = request.headers.get("origin")
+    logger.error(f"Unhandled exception: {exc}", exc_info=True)
+    response = JSONResponse(
+        status_code=500,
+        content={
+            "error": "Internal server error",
+            "status_code": 500,
+            "timestamp": time.time()
+        },
+    )
+    # Add CORS headers to error responses
+    if is_origin_allowed(origin):
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+    return response
 
 # Health check endpoint
 @app.get("/health")

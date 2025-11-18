@@ -1145,6 +1145,9 @@ export default function FarmersPage() {
           <Button
             onClick={() => {
               // Clean up empty strings and send all fields
+              // Only include farm coordinates if farm details are being provided
+              const hasFarmDetails = !!(createFarmerForm.farm_name && createFarmerForm.farm_district && createFarmerForm.farm_province);
+              
               const formData: CreateFarmerRequest = {
                 name: createFarmerForm.name,
                 phone: createFarmerForm.phone,
@@ -1159,8 +1162,8 @@ export default function FarmersPage() {
                 home_province: createFarmerForm.home_province || undefined,
                 home_postal_code: createFarmerForm.home_postal_code || undefined,
                 farm_name: createFarmerForm.farm_name || undefined,
-                farm_latitude: createFarmerForm.farm_latitude,
-                farm_longitude: createFarmerForm.farm_longitude,
+                farm_latitude: hasFarmDetails ? createFarmerForm.farm_latitude : undefined,
+                farm_longitude: hasFarmDetails ? createFarmerForm.farm_longitude : undefined,
                 farm_geohash: createFarmerForm.farm_geohash || undefined,
                 farm_district: createFarmerForm.farm_district || undefined,
                 farm_province: createFarmerForm.farm_province || undefined,
