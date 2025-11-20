@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from pydantic import BaseModel, EmailStr, validator
 from datetime import datetime
+import json
 
 from ....core.database import get_db
 from ....core.auth import require_staff, get_password_hash
