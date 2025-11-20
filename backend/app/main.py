@@ -153,10 +153,16 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 async def general_exception_handler(request: Request, exc: Exception):
     origin = request.headers.get("origin")
     logger.error(f"Unhandled exception: {exc}", exc_info=True)
+    
+    # Include error details in debug mode
+    error_detail = "Internal server error"
+    if settings.DEBUG:
+        error_detail = f"{type(exc).__name__}: {str(exc)}"
+    
     response = JSONResponse(
         status_code=500,
         content={
-            "error": "Internal server error",
+            "error": error_detail,
             "status_code": 500,
             "timestamp": time.time()
         },
