@@ -1157,8 +1157,9 @@ export default function BuyersPage() {
                             <li {...props} key={option}>
                               <Checkbox
                                 checked={selected}
-                                sx={{ mr: 1 }}
+                                sx={{ mr: 1, pointerEvents: 'none' }}
                                 disableRipple
+                                tabIndex={-1}
                               />
                               <ListItemText primary={option} />
                             </li>
@@ -1187,8 +1188,9 @@ export default function BuyersPage() {
                             <li {...props} key={option.crop_id}>
                               <Checkbox
                                 checked={selected}
-                                sx={{ mr: 1 }}
+                                sx={{ mr: 1, pointerEvents: 'none' }}
                                 disableRipple
+                                tabIndex={-1}
                               />
                               <ListItemText primary={option.crop_name} />
                             </li>
@@ -1216,7 +1218,7 @@ export default function BuyersPage() {
                     )}
                     renderOption={(props, option, { selected }) => (
                       <li {...props}>
-                        <Checkbox checked={selected} />
+                        <Checkbox checked={selected} sx={{ pointerEvents: 'none' }} tabIndex={-1} />
                         <ListItemText primary={option} />
                       </li>
                     )}

@@ -1053,8 +1053,9 @@ export default function FarmersPage() {
                             <li {...props} key={option}>
                               <Checkbox
                                 checked={selected}
-                                sx={{ mr: 1 }}
+                                sx={{ mr: 1, pointerEvents: 'none' }}
                                 disableRipple
+                                tabIndex={-1}
                               />
                               <ListItemText primary={option} />
                             </li>
@@ -1083,8 +1084,9 @@ export default function FarmersPage() {
                             <li {...props} key={option.crop_id}>
                               <Checkbox
                                 checked={selected}
-                                sx={{ mr: 1 }}
+                                sx={{ mr: 1, pointerEvents: 'none' }}
                                 disableRipple
+                                tabIndex={-1}
                               />
                               <ListItemText primary={option.crop_name} />
                             </li>
