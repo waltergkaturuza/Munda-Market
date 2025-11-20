@@ -212,12 +212,75 @@ async def initialize_database():
             detail=f"Failed to initialize database: {str(e)}"
         )
 
+# Create initial admin user endpoint
+@app.post("/create-admin")
+async def create_admin_user():
+    """Create initial admin user (for first-time setup only)"""
+    from .core.database import SessionLocal
+    from .core.auth import get_password_hash
+    from .models.user import User, UserRole, UserStatus
+    
+    ADMIN_PHONE = "+263771234567"
+    ADMIN_PASSWORD = "admin123"
+    ADMIN_NAME = "System Administrator"
+    ADMIN_EMAIL = "admin@mundamarket.co.zw"
+    
+    db = SessionLocal()
+    try:
+        # Check if admin already exists
+        existing_admin = db.query(User).filter(User.role == UserRole.ADMIN).first()
+        if existing_admin:
+            return {
+                "status": "exists",
+                "message": "Admin user already exists",
+                "user_id": existing_admin.user_id,
+                "phone": existing_admin.phone
+            }
+        
+        # Create new admin user
+        admin = User(
+            name=ADMIN_NAME,
+            phone=ADMIN_PHONE,
+            email=ADMIN_EMAIL,
+            hashed_password=get_password_hash(ADMIN_PASSWORD),
+            role=UserRole.ADMIN,
+            status=UserStatus.ACTIVE,
+            is_verified=True,
+        )
+        db.add(admin)
+        db.commit()
+        db.refresh(admin)
+        
+        logger.info(f"Admin user created: {ADMIN_NAME} (ID: {admin.user_id})")
+        
+        return {
+            "status": "created",
+            "message": "Admin user created successfully",
+            "user_id": admin.user_id,
+            "phone": ADMIN_PHONE,
+            "password": ADMIN_PASSWORD,
+            "note": "Please change the password after first login"
+        }
+    except Exception as e:
+        logger.error(f"Error creating admin user: {e}", exc_info=True)
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to create admin user: {str(e)}"
+        )
+    finally:
+        db.close()
+
 # Include API router
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
 # Startup event
 @app.on_event("startup")
 async def startup_event():
+    from .core.database import SessionLocal
+    from .core.auth import get_password_hash
+    from .models.user import User, UserRole, UserStatus
+    
     logger.info(f"Starting {settings.PROJECT_NAME} v{settings.PROJECT_VERSION}")
     if settings.DEBUG:
         logger.info("Debug mode is enabled")
@@ -230,6 +293,31 @@ async def startup_event():
     except Exception as e:
         logger.error(f"Error creating database tables: {e}")
         # Don't fail startup, just log the error
+    
+    # Ensure admin user exists
+    db = SessionLocal()
+    try:
+        admin = db.query(User).filter(User.role == UserRole.ADMIN).first()
+        if not admin:
+            admin = User(
+                name="System Administrator",
+                phone="+263771234567",
+                email="admin@mundamarket.co.zw",
+                hashed_password=get_password_hash("admin123"),
+                role=UserRole.ADMIN,
+                status=UserStatus.ACTIVE,
+                is_verified=True,
+            )
+            db.add(admin)
+            db.commit()
+            logger.info("Admin user created automatically")
+        else:
+            logger.info(f"Admin user exists (ID: {admin.user_id})")
+    except Exception as e:
+        logger.error(f"Error ensuring admin user: {e}")
+        db.rollback()
+    finally:
+        db.close()
     
     # Start background scheduler for alerts and stock history
     try:
