@@ -195,6 +195,23 @@ async def root():
         "health": "/health"
     }
 
+# Database initialization endpoint (for production setup)
+@app.post("/init-db")
+async def initialize_database():
+    """Initialize database tables (admin use only)"""
+    try:
+        create_tables()
+        return {
+            "status": "success",
+            "message": "Database tables created/verified successfully"
+        }
+    except Exception as e:
+        logger.error(f"Error initializing database: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to initialize database: {str(e)}"
+        )
+
 # Include API router
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
@@ -204,12 +221,15 @@ async def startup_event():
     logger.info(f"Starting {settings.PROJECT_NAME} v{settings.PROJECT_VERSION}")
     if settings.DEBUG:
         logger.info("Debug mode is enabled")
-        # Create tables in development (use Alembic migrations in production)
-        try:
-            create_tables()
-            logger.info("Database tables created/verified")
-        except Exception as e:
-            logger.error(f"Error creating database tables: {e}")
+    
+    # Always ensure database tables exist (for initial setup)
+    # In production with migrations, this will just verify tables exist
+    try:
+        create_tables()
+        logger.info("Database tables created/verified")
+    except Exception as e:
+        logger.error(f"Error creating database tables: {e}")
+        # Don't fail startup, just log the error
     
     # Start background scheduler for alerts and stock history
     try:
