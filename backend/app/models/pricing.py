@@ -129,6 +129,19 @@ class Listing(Base):
     is_active = Column(Boolean, default=True)
     is_featured = Column(Boolean, default=False)
     
+    # Marketing content
+    title = Column(String(200), nullable=True)  # Custom listing title (overrides crop name)
+    description = Column(Text, nullable=True)  # Marketing description for this listing
+    selling_points = Column(Text, nullable=True)  # JSON array of key selling points
+    
+    # Display media
+    featured_image = Column(String(500), nullable=True)  # Custom featured image URL
+    
+    # Promotional flags
+    is_new_arrival = Column(Boolean, default=False)
+    is_limited_supply = Column(Boolean, default=False)
+    promotional_badge = Column(String(50), nullable=True)  # e.g., "Best Seller", "Organic"
+    
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

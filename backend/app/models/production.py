@@ -143,7 +143,12 @@ class Lot(Base):
     
     # Photos and documentation
     photos = Column(Text, nullable=True)  # JSON array of photo URLs
+    thumbnail_url = Column(String(500), nullable=True)  # Primary thumbnail for quick display
     quality_certificates = Column(Text, nullable=True)  # JSON array of certificate URLs
+    
+    # Marketing and description
+    description = Column(Text, nullable=True)  # Detailed description of this specific lot
+    highlights = Column(Text, nullable=True)  # JSON array of key selling points
     
     # Pesticide and treatment information
     pesticide_phi_days = Column(Integer, nullable=True)  # Pre-harvest interval

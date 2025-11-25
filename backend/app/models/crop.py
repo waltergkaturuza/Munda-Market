@@ -42,6 +42,20 @@ class Crop(Base):
     # Pricing
     base_price_usd_per_kg = Column(Float, nullable=True)  # Reference price for calculations
     
+    # Media and marketing
+    image_url = Column(String(500), nullable=True)  # Primary product image
+    gallery_images = Column(Text, nullable=True)  # JSON array of additional images
+    description = Column(Text, nullable=True)  # Detailed marketing description
+    short_description = Column(String(500), nullable=True)  # Brief description for listings
+    
+    # Nutritional and benefits information
+    nutritional_info = Column(Text, nullable=True)  # JSON of nutritional data
+    health_benefits = Column(Text, nullable=True)  # Marketing text about health benefits
+    
+    # Storage and handling tips (for buyer education)
+    storage_tips = Column(Text, nullable=True)
+    preparation_tips = Column(Text, nullable=True)
+    
     # Status
     is_active = Column(Boolean, default=True)
     

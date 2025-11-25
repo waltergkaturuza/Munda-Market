@@ -183,6 +183,12 @@ class LotCreate(BaseModel):
     brix_reading: Optional[float] = None
     harvest_date: Optional[datetime] = None
     
+    # Media and marketing fields
+    photos: Optional[List[str]] = None
+    thumbnail_url: Optional[str] = None
+    description: Optional[str] = None
+    highlights: Optional[List[str]] = None
+    
     @validator('available_kg')
     def validate_available_kg(cls, v):
         if v <= 0:
@@ -209,8 +215,54 @@ class LotResponse(BaseModel):
     harvest_date: Optional[datetime]
     created_at: datetime
     
+    # Media and marketing fields
+    photos: Optional[List[str]] = None
+    thumbnail_url: Optional[str] = None
+    description: Optional[str] = None
+    highlights: Optional[List[str]] = None
+    
+    # Quality details
+    size_range: Optional[str] = None
+    color_description: Optional[str] = None
+    brix_reading: Optional[float] = None
+    
     class Config:
         from_attributes = True
+    
+    @classmethod
+    def from_orm(cls, lot):
+        """Convert ORM model to Pydantic model with JSON parsing"""
+        data = {
+            'lot_id': lot.lot_id,
+            'lot_number': lot.lot_number,
+            'plan_id': lot.plan_id,
+            'grade': lot.grade,
+            'available_kg': lot.available_kg,
+            'reserved_kg': lot.reserved_kg,
+            'sold_kg': lot.sold_kg,
+            'min_order_kg': lot.min_order_kg,
+            'current_status': lot.current_status,
+            'harvest_date': lot.harvest_date,
+            'created_at': lot.created_at,
+            'thumbnail_url': lot.thumbnail_url,
+            'description': lot.description,
+            'size_range': lot.size_range,
+            'color_description': lot.color_description,
+            'brix_reading': lot.brix_reading,
+        }
+        
+        # Parse JSON fields
+        try:
+            data['photos'] = json.loads(lot.photos) if lot.photos else None
+        except (json.JSONDecodeError, TypeError):
+            data['photos'] = None
+        
+        try:
+            data['highlights'] = json.loads(lot.highlights) if lot.highlights else None
+        except (json.JSONDecodeError, TypeError):
+            data['highlights'] = None
+        
+        return cls(**data)
 
 
 # Farmer endpoints
@@ -540,24 +592,36 @@ async def create_lot(
     import uuid
     lot_number = f"LOT-{plan.plan_id}-{uuid.uuid4().hex[:8].upper()}"
     
-    lot = Lot(
-        plan_id=lot_data.plan_id,
-        lot_number=lot_number,
-        grade=lot_data.grade,
-        available_kg=lot_data.available_kg,
-        min_order_kg=lot_data.min_order_kg,
-        max_order_kg=lot_data.max_order_kg,
-        size_range=lot_data.size_range,
-        color_description=lot_data.color_description,
-        brix_reading=lot_data.brix_reading,
-        harvest_date=lot_data.harvest_date
-    )
+    # Prepare lot data
+    lot_dict = {
+        'plan_id': lot_data.plan_id,
+        'lot_number': lot_number,
+        'grade': lot_data.grade,
+        'available_kg': lot_data.available_kg,
+        'min_order_kg': lot_data.min_order_kg,
+        'max_order_kg': lot_data.max_order_kg,
+        'size_range': lot_data.size_range,
+        'color_description': lot_data.color_description,
+        'brix_reading': lot_data.brix_reading,
+        'harvest_date': lot_data.harvest_date,
+        'thumbnail_url': lot_data.thumbnail_url,
+        'description': lot_data.description,
+    }
+    
+    # Convert lists to JSON strings for database storage
+    if lot_data.photos:
+        lot_dict['photos'] = json.dumps(lot_data.photos)
+    
+    if lot_data.highlights:
+        lot_dict['highlights'] = json.dumps(lot_data.highlights)
+    
+    lot = Lot(**lot_dict)
     
     db.add(lot)
     db.commit()
     db.refresh(lot)
     
-    return LotResponse.model_validate(lot)
+    return LotResponse.from_orm(lot)
 
 
 @router.get("/lots", response_model=List[LotResponse])
@@ -577,7 +641,7 @@ async def list_lots(
         result = []
         for lot in lots:
             try:
-                result.append(LotResponse.model_validate(lot))
+                result.append(LotResponse.from_orm(lot))
             except Exception as e:
                 print(f"Error validating lot {lot.lot_id}: {e}")
                 continue
