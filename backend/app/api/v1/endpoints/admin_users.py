@@ -430,7 +430,7 @@ async def get_all_farmers(
         ).scalar() or 0.0
         
         # Sum earnings from payouts
-        total_earnings = db.query(func.sum(Payout.amount_usd)).filter(
+        total_earnings = db.query(func.sum(Payout.amount)).filter(
             Payout.farmer_user_id == farmer.user_id
         ).scalar() or 0.0
         
@@ -484,7 +484,7 @@ async def get_farmer_details(
     payouts_data = [
         {
             "payout_id": p.payout_id,
-            "amount_usd": float(p.amount_usd),
+            "amount_usd": float(p.amount),
             "status": p.status.value,
             "created_at": p.created_at.isoformat()
         }
@@ -496,7 +496,7 @@ async def get_farmer_details(
     total_production = db.query(func.sum(ProductionPlan.expected_yield_kg)).filter(
         ProductionPlan.farm_id.in_([f.farm_id for f in farms])
     ).scalar() or 0.0
-    total_earnings = db.query(func.sum(Payout.amount_usd)).filter(
+    total_earnings = db.query(func.sum(Payout.amount)).filter(
         Payout.farmer_user_id == farmer_id
     ).scalar() or 0.0
     
@@ -975,13 +975,13 @@ async def get_all_payments(
             order_id=payment.order_id,
             buyer_user_id=payment.buyer_user_id,
             buyer_name=buyer.name if buyer else None,
-            amount_usd=float(payment.amount_usd),
+            amount_usd=float(payment.amount),
             currency=payment.currency,
-            payment_method=payment.payment_method.value if hasattr(payment.payment_method, 'value') else str(payment.payment_method),
+            payment_method=payment.method.value if hasattr(payment.method, 'value') else str(payment.method),
             status=payment.status.value if hasattr(payment.status, 'value') else str(payment.status),
-            transaction_reference=payment.transaction_reference,
+            transaction_reference=payment.payment_reference,
             created_at=payment.created_at,
-            processed_at=payment.processed_at
+            processed_at=payment.captured_at
         ))
     
     return result
@@ -999,9 +999,9 @@ async def reconcile_payment(
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
     
-    payment.transaction_reference = request.transaction_reference
-    payment.processed_at = datetime.utcnow()
-    # Update status to completed (assuming your Payment model has this status)
+    payment.external_transaction_id = request.transaction_reference
+    payment.captured_at = datetime.utcnow()
+    payment.status = PaymentStatus.CAPTURED
     
     # Log action
     audit = AuditLog(

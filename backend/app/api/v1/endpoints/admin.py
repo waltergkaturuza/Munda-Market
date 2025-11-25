@@ -88,7 +88,7 @@ async def get_dashboard_stats(
     ).scalar() or 0.0
     
     # Pending payouts
-    pending_payouts = db.query(func.sum(Payout.amount_usd)).filter(
+    pending_payouts = db.query(func.sum(Payout.amount)).filter(
         Payout.status == PayoutStatus.PENDING
     ).scalar() or 0.0
     
@@ -384,13 +384,13 @@ async def get_pending_payouts(
             payout_id=payout.payout_id,
             farmer_user_id=payout.farmer_user_id,
             farmer_name=farmer.name if farmer else None,
-            amount_usd=float(payout.amount_usd),
+            amount_usd=float(payout.amount),
             currency=payout.currency,
             status=payout.status.value,
-            payment_method=payout.payment_method,
-            transaction_reference=payout.transaction_reference,
+            payment_method=payout.method.value if hasattr(payout.method, 'value') else str(payout.method),
+            transaction_reference=payout.payout_reference,
             created_at=payout.created_at,
-            processed_at=payout.processed_at
+            processed_at=payout.completed_at
         ))
     
     return result
@@ -412,13 +412,13 @@ async def get_all_payouts(
             payout_id=payout.payout_id,
             farmer_user_id=payout.farmer_user_id,
             farmer_name=farmer.name if farmer else None,
-            amount_usd=float(payout.amount_usd),
+            amount_usd=float(payout.amount),
             currency=payout.currency,
             status=payout.status.value,
-            payment_method=payout.payment_method,
-            transaction_reference=payout.transaction_reference,
+            payment_method=payout.method.value if hasattr(payout.method, 'value') else str(payout.method),
+            transaction_reference=payout.payout_reference,
             created_at=payout.created_at,
-            processed_at=payout.processed_at
+            processed_at=payout.completed_at
         ))
     
     return result
@@ -440,9 +440,9 @@ async def process_payout(
     if not payout:
         raise HTTPException(status_code=404, detail="Payout not found")
     
-    payout.status = PayoutStatus.PROCESSED
-    payout.transaction_reference = request.transaction_reference
-    payout.processed_at = datetime.utcnow()
+    payout.status = PayoutStatus.COMPLETED
+    payout.external_transaction_id = request.transaction_reference
+    payout.completed_at = datetime.utcnow()
     
     # Log the action
     audit_log = AuditLog(
